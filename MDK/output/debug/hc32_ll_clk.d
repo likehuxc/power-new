@@ -1,4 +1,5 @@
-./output/debug/hc32_ll_clk.o: ..\drivers\hc32_ll_driver\src\hc32_ll_clk.c \
+./output/debug/hc32_ll_clk.o: \
+  ..\..\..\..\..\..\drivers\hc32_ll_driver\src\hc32_ll_clk.c \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_clk.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_def.h \
   ..\drivers\cmsis\Device\HDSC\hc32f4xx\Include\hc32f4xx.h \

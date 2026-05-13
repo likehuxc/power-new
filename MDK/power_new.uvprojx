@@ -404,6 +404,56 @@
               <FileType>1</FileType>
               <FilePath>..\source\main.c</FilePath>
             </File>
+            <File>
+              <FileName>app.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\app.c</FilePath>
+            </File>
+            <File>
+              <FileName>board.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\board.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\drv_led.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\drv_uart_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>ring_buf.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\ring_buf.c</FilePath>
+            </File>
+            <File>
+              <FileName>app.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\app.h</FilePath>
+            </File>
+            <File>
+              <FileName>board.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\board.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_led.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\drv_led.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart_dma.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\drv_uart_dma.h</FilePath>
+            </File>
+            <File>
+              <FileName>ring_buf.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\ring_buf.h</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
