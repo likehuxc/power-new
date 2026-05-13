@@ -11,7 +11,7 @@
    2023-09-30       CDT             将USART_DR拆分为USART_RDR和USART_TDR
    2024-11-08       CDT             优化USART_TxComplete_IrqCallback；新增USART_StopTimeoutTimer
    2026-05-13       User            适配power-new工程：USART1 PA0(RX)/PA2(TX)，PB7心跳LED
-                                    发送采用轮询方式(USART_UART_Trans)，接收采用DMA+TMR0超时
+                                    发送采用DMA方式，接收采用DMA+TMR0超时
  @endverbatim
  *******************************************************************************
  * Copyright (C) 2022-2025, Xiaohua Semiconductor Co., Ltd. All rights reserved.
@@ -63,7 +63,7 @@
 #define RX_DMA_TC_IRQn                  (INT000_IRQn)
 #define RX_DMA_TC_INT_SRC               (INT_SRC_DMA1_TC0)
 
-/* 发送DMA：DMA2 通道0，触发源为 USART1_TI（预留，暂不使能通道） */
+/* 发送DMA：DMA2 通道0，触发源为 USART1_TI */
 #define TX_DMA_UNIT                     (CM_DMA2)
 #define TX_DMA_CH                       (DMA_CH0)
 #define TX_DMA_FCG_ENABLE()             (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA2, ENABLE))
@@ -110,9 +110,6 @@
 
 /* 接收缓冲区最大长度 */
 #define APP_FRAME_LEN_MAX               (500U)
-
-/* 轮询发送超时时间（ms） */
-#define USART_TX_TIMEOUT_MS             (1000UL)
 
 /* 心跳LED：PB7 */
 #define HEART_LED_PORT                  (GPIO_PORT_B)
@@ -168,20 +165,47 @@ static void HeartLed_Init(void)
 }
 
 /**
- * @brief  通过USART轮询方式发送数据。
- *         发送前使能TX，TX完成中断回调中关闭TX。
+ * @brief  通过DMA方式发送USART数据。
+ *         该函数启动DMA后立即返回，发送缓冲区需在TX完成前保持有效。
  * @param  [in] pu8Data     待发送数据指针
  * @param  [in] u16Len      发送字节数
  * @retval int32_t  LL_OK 或错误码
  */
 static int32_t Usart_DmaSend(const uint8_t *pu8Data, uint16_t u16Len)
 {
+    int32_t i32Ret;
+
     if ((NULL == pu8Data) || (0U == u16Len)) {
         return LL_ERR_INVD_PARAM;
     }
 
-    USART_FuncCmd(USART_UNIT, USART_TX, ENABLE);
-    return USART_UART_Trans(USART_UNIT, pu8Data, u16Len, USART_TX_TIMEOUT_MS);
+    if (SET == m_enTxBusy) {
+        return LL_ERR_BUSY;
+    }
+
+    m_enTxBusy = SET;
+
+    (void)DMA_ChCmd(TX_DMA_UNIT, TX_DMA_CH, DISABLE);
+    DMA_ClearTransCompleteStatus(TX_DMA_UNIT, TX_DMA_TC_FLAG);
+
+    i32Ret = DMA_SetSrcAddr(TX_DMA_UNIT, TX_DMA_CH, (uint32_t)pu8Data);
+    if (LL_OK == i32Ret) {
+        i32Ret = DMA_SetTransCount(TX_DMA_UNIT, TX_DMA_CH, u16Len);
+    }
+    if (LL_OK == i32Ret) {
+        i32Ret = DMA_SetBlockSize(TX_DMA_UNIT, TX_DMA_CH, 1U);
+    }
+    if (LL_OK == i32Ret) {
+        i32Ret = DMA_ChCmd(TX_DMA_UNIT, TX_DMA_CH, ENABLE);
+    }
+    if (LL_OK == i32Ret) {
+        USART_FuncCmd(USART_UNIT, USART_TX, ENABLE);
+    } else {
+        m_enTxBusy = RESET;
+        (void)DMA_ChCmd(TX_DMA_UNIT, TX_DMA_CH, DISABLE);
+    }
+
+    return i32Ret;
 }
 
 /**
@@ -216,11 +240,12 @@ static void RX_DMA_TC_IrqCallback(void)
 }
 
 /**
- * @brief  发送DMA传输完成中断回调（预留，目前TX采用轮询）。
+ * @brief  发送DMA传输完成中断回调。
  *         使能USART TX完成中断，由TX完成回调负责关闭TX。
  */
 static void TX_DMA_TC_IrqCallback(void)
 {
+    (void)DMA_ChCmd(TX_DMA_UNIT, TX_DMA_CH, DISABLE);
     USART_FuncCmd(USART_UNIT, USART_INT_TX_CPLT, ENABLE);
 
     DMA_ClearTransCompleteStatus(TX_DMA_UNIT, TX_DMA_TC_FLAG);
@@ -295,14 +320,14 @@ static int32_t DMA_Config(void)
         (void)DMA_ChCmd(RX_DMA_UNIT, RX_DMA_CH, ENABLE);
     }
 
-    /* ---- 发送DMA：DMA2 CH0，m_au8RxBuf → USART1_TDR（预留，通道暂不使能） ---- */
+    /* ---- 发送DMA：DMA2 CH0，内存缓冲区 → USART1_TDR（通道按需启动） ---- */
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;
     stcDmaInit.u32BlockSize  = 1UL;
     stcDmaInit.u32TransCount = ARRAY_SZ(m_au8RxBuf);
     stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;
     stcDmaInit.u32DestAddr   = (uint32_t)(&USART_UNIT->TDR); /* 目标：USART发送寄存器 */
-    stcDmaInit.u32SrcAddr    = (uint32_t)m_au8RxBuf;         /* 源：接收缓冲区（echo用） */
+    stcDmaInit.u32SrcAddr    = (uint32_t)m_au8HeartbeatMsg;  /* 源：发送缓冲区，实际发送前会重新配置 */
     stcDmaInit.u32SrcAddrInc  = DMA_SRC_ADDR_INC;
     stcDmaInit.u32DestAddrInc = DMA_DEST_ADDR_FIX;
     i32Ret = DMA_Init(TX_DMA_UNIT, TX_DMA_CH, &stcDmaInit);
@@ -320,7 +345,7 @@ static int32_t DMA_Config(void)
 
         DMA_Cmd(TX_DMA_UNIT, ENABLE);
         DMA_TransCompleteIntCmd(TX_DMA_UNIT, TX_DMA_TC_INT, ENABLE);
-        /* 发送DMA通道按需使能（需要echo时再调用DMA_ChCmd） */
+        /* 发送DMA通道按需使能 */
     }
 
     return i32Ret;
@@ -414,7 +439,7 @@ static void USART_RxTimeout_IrqCallback(void)
 
 /**
  * @brief  USART发送完成中断回调。
- *         轮询发送结束后，关闭TX发送器及TX完成中断，清除忙标志。
+ *         DMA搬完最后一个字节后，等待USART移位发送完成，再关闭TX并清除忙标志。
  */
 static void USART_TxComplete_IrqCallback(void)
 {
