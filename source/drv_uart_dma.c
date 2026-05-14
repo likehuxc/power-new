@@ -357,7 +357,10 @@ int32_t DrvUartDma_Init(void)
     stc_irq_signin_config_t stcIrqSigninConfig;
     int32_t                 i32Ret;
 
-    (void)DMA_Config();
+    i32Ret = DMA_Config();
+    if (LL_OK != i32Ret) {
+        return i32Ret;
+    }
 
     TMR0_Config(USART_TIMEOUT_BITS);
 
@@ -368,6 +371,7 @@ int32_t DrvUartDma_Init(void)
 
     (void)USART_UART_StructInit(&stcUartInit);
     stcUartInit.u32ClockDiv      = USART_CLK_DIV64;
+    stcUartInit.u32CKOutput      = USART_CK_OUTPUT_ENABLE;
     stcUartInit.u32Baudrate      = USART_BAUDRATE;
     stcUartInit.u32OverSampleBit = USART_OVER_SAMPLE_8BIT;
     i32Ret = USART_UART_Init(USART_UNIT, &stcUartInit, NULL);
@@ -401,6 +405,9 @@ int32_t DrvUartDma_Init(void)
     NVIC_ClearPendingIRQ(stcIrqSigninConfig.enIRQn);
     NVIC_SetPriority(stcIrqSigninConfig.enIRQn, DDL_IRQ_PRIO_DEFAULT);
     NVIC_EnableIRQ(stcIrqSigninConfig.enIRQn);
+
+    USART_StopTimeoutTimer(TMR0_UNIT, TMR0_CH);
+    USART_ClearStatus(USART_UNIT, USART_FLAG_RX_TIMEOUT);
 
     /* 与原版一致：先恢复寄存器写保护，再开启 USART 接收通路 */
     Board_PeriphLock();
