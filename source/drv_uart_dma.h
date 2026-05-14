@@ -11,6 +11,7 @@
 #include <stdint.h>
 
 #define DRV_UART_DMA_FRAME_LEN_MAX 500U
+#define DRV_UART_DMA_TX_BUF_LEN_MAX 128U
 
 int32_t DrvUartDma_Init(void);
 int32_t DrvUartDma_Send(const uint8_t *pu8Data, uint16_t u16Len);

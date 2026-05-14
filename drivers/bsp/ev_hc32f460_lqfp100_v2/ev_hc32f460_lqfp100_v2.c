@@ -331,15 +331,15 @@ __WEAKDEF void BSP_CLK_Init(void)
 
     /* Config Xtal and enable Xtal */
     stcXtalInit.u8Mode = CLK_XTAL_MD_OSC;
-    stcXtalInit.u8Drv = CLK_XTAL_DRV_ULOW;
+    stcXtalInit.u8Drv = CLK_XTAL_DRV_LOW;  /* 12MHz: LOW drive (ULOW is for <=8MHz) */
     stcXtalInit.u8State = CLK_XTAL_ON;
     stcXtalInit.u8StableTime = CLK_XTAL_STB_2MS;
     (void)CLK_XtalInit(&stcXtalInit);
 
-    /* MPLL config (XTAL / pllmDiv * plln / PllpDiv = 200M). */
+    /* MPLL config (12MHz / 3 * 100 / 2 = 200MHz, VCO = 400MHz). */
     stcMpllInit.PLLCFGR = 0UL;
-    stcMpllInit.PLLCFGR_f.PLLM = 1UL - 1UL;
-    stcMpllInit.PLLCFGR_f.PLLN = 50UL - 1UL;
+    stcMpllInit.PLLCFGR_f.PLLM = 3UL - 1UL;
+    stcMpllInit.PLLCFGR_f.PLLN = 100UL - 1UL;
     stcMpllInit.PLLCFGR_f.PLLP = 2UL - 1UL;
     stcMpllInit.PLLCFGR_f.PLLQ = 2UL - 1UL;
     stcMpllInit.PLLCFGR_f.PLLR = 2UL - 1UL;

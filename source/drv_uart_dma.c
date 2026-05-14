@@ -72,7 +72,8 @@
 static __IO en_flag_status_t m_enRxFrameEnd;        /* 接收帧结束标志 */
 static __IO en_flag_status_t m_enTxBusy;            /* 发送忙标志 */
 static __IO uint16_t         m_u16RxLen;            /* 本帧实际接收字节数 */
-static uint8_t               m_au8RxBuf[DRV_UART_DMA_FRAME_LEN_MAX];   /* 接收缓冲区 */
+static uint8_t               m_au8RxBuf[DRV_UART_DMA_FRAME_LEN_MAX] = {0};   /* 接收缓冲区 */
+static uint8_t               m_au8TxBuf[DRV_UART_DMA_TX_BUF_LEN_MAX] = {0};   /* 发送缓冲区 */
 
 static void RX_DMA_TC_IrqCallback(void);
 static void TX_DMA_TC_IrqCallback(void);
@@ -265,10 +266,10 @@ static int32_t DMA_Config(void)
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;
     stcDmaInit.u32BlockSize  = 1UL;
-    stcDmaInit.u32TransCount = ARRAY_SZ(m_au8RxBuf);
+    stcDmaInit.u32TransCount = ARRAY_SZ(m_au8TxBuf);
     stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;
     stcDmaInit.u32DestAddr   = (uint32_t)(&USART_UNIT->TDR); /* 目标：USART发送寄存器 */
-    stcDmaInit.u32SrcAddr    = (uint32_t)m_au8RxBuf;        /* 源：占位，发送前重新配置 */
+    stcDmaInit.u32SrcAddr    = (uint32_t)m_au8TxBuf;        /* 源：占位，发送前重新配置 */
     stcDmaInit.u32SrcAddrInc  = DMA_SRC_ADDR_INC;
     stcDmaInit.u32DestAddrInc = DMA_DEST_ADDR_FIX;
     i32Ret = DMA_Init(TX_DMA_UNIT, TX_DMA_CH, &stcDmaInit);
@@ -406,8 +407,9 @@ int32_t DrvUartDma_Init(void)
     NVIC_SetPriority(stcIrqSigninConfig.enIRQn, DDL_IRQ_PRIO_DEFAULT);
     NVIC_EnableIRQ(stcIrqSigninConfig.enIRQn);
 
-    USART_StopTimeoutTimer(TMR0_UNIT, TMR0_CH);
-    USART_ClearStatus(USART_UNIT, USART_FLAG_RX_TIMEOUT);
+//		/* 清除定时器标志位 */
+//    USART_StopTimeoutTimer(TMR0_UNIT, TMR0_CH);
+//    USART_ClearStatus(USART_UNIT, USART_FLAG_RX_TIMEOUT);
 
     /* 与原版一致：先恢复寄存器写保护，再开启 USART 接收通路 */
     Board_PeriphLock();
