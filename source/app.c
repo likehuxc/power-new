@@ -14,7 +14,7 @@
 #include "hc32_ll.h"
 
 #define HEART_LED_BLINK_PERIOD_MS 1000UL
-#define HEARTBEAT_MSG             "AAA\r\n"
+#define HEARTBEAT_MSG             "hello 111\r\n"
 
 static uint8_t m_au8HeartbeatMsg[] = HEARTBEAT_MSG;
 
