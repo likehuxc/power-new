@@ -16,7 +16,7 @@ int32_t main(void)
 {
     Board_PeriphUnlock();
     Board_Init();
-    (void)App_Init();
+    App_Init();
 
     for (;;) {
         App_Process();

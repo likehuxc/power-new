@@ -54,7 +54,7 @@ extern "C"
 #define LL_ADC_ENABLE                               (DDL_OFF)
 #define LL_AES_ENABLE                               (DDL_OFF)
 #define LL_AOS_ENABLE                               (DDL_ON)
-#define LL_CAN_ENABLE                               (DDL_OFF)
+#define LL_CAN_ENABLE                               (DDL_ON)
 #define LL_CLK_ENABLE                               (DDL_ON)
 #define LL_CMP_ENABLE                               (DDL_OFF)
 #define LL_CRC_ENABLE                               (DDL_OFF)

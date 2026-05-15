@@ -410,6 +410,21 @@
               <FilePath>..\source\app.c</FilePath>
             </File>
             <File>
+              <FileName>led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\led.c</FilePath>
+            </File>
+            <File>
+              <FileName>uart.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\uart.c</FilePath>
+            </File>
+            <File>
+              <FileName>can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\can.c</FilePath>
+            </File>
+            <File>
               <FileName>board.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\board.c</FilePath>
@@ -425,6 +440,11 @@
               <FilePath>..\source\drv_uart_dma.c</FilePath>
             </File>
             <File>
+              <FileName>drv_can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\drv_can.c</FilePath>
+            </File>
+            <File>
               <FileName>ring_buf.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\ring_buf.c</FilePath>
@@ -433,6 +453,21 @@
               <FileName>app.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\source\app.h</FilePath>
+            </File>
+            <File>
+              <FileName>led.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\led.h</FilePath>
+            </File>
+            <File>
+              <FileName>uart.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\uart.h</FilePath>
+            </File>
+            <File>
+              <FileName>can.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\can.h</FilePath>
             </File>
             <File>
               <FileName>board.h</FileName>
@@ -448,6 +483,11 @@
               <FileName>drv_uart_dma.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\source\drv_uart_dma.h</FilePath>
+            </File>
+            <File>
+              <FileName>drv_can.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\drv_can.h</FilePath>
             </File>
             <File>
               <FileName>ring_buf.h</FileName>
@@ -468,6 +508,11 @@
               <FileName>hc32_ll_aos.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\drivers\hc32_ll_driver\src\hc32_ll_aos.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_can.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\hc32_ll_driver\src\hc32_ll_can.c</FilePath>
             </File>
             <File>
               <FileName>hc32_ll_clk.c</FileName>

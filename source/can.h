@@ -1,13 +1,15 @@
 /**
  *******************************************************************************
- * @file  app.h
+ * @file  can.h
  *******************************************************************************
  */
 
-#ifndef APP_H__
-#define APP_H__
+#ifndef CAN_H__
+#define CAN_H__
 
-void App_Init(void);
-void App_Process(void);
+#include <stdint.h>
 
-#endif /* APP_H__ */
+int32_t Can_Init(void);
+void Can_Task(void);
+
+#endif /* CAN_H__ */

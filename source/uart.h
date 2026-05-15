@@ -1,13 +1,15 @@
 /**
  *******************************************************************************
- * @file  app.h
+ * @file  uart.h
  *******************************************************************************
  */
 
-#ifndef APP_H__
-#define APP_H__
+#ifndef UART_H__
+#define UART_H__
 
-void App_Init(void);
-void App_Process(void);
+#include <stdint.h>
 
-#endif /* APP_H__ */
+int32_t Uart_Init(void);
+void Uart_Task(void);
+
+#endif /* UART_H__ */

@@ -407,11 +407,11 @@ int32_t DrvUartDma_Init(void)
     NVIC_SetPriority(stcIrqSigninConfig.enIRQn, DDL_IRQ_PRIO_DEFAULT);
     NVIC_EnableIRQ(stcIrqSigninConfig.enIRQn);
 
-//		/* 清除定时器标志位 */
-//    USART_StopTimeoutTimer(TMR0_UNIT, TMR0_CH);
-//    USART_ClearStatus(USART_UNIT, USART_FLAG_RX_TIMEOUT);
+	/* 清除定时器标志位 */
+    USART_StopTimeoutTimer(TMR0_UNIT, TMR0_CH);
+    USART_ClearStatus(USART_UNIT, USART_FLAG_RX_TIMEOUT);
 
-    /* 与原版一致：先恢复寄存器写保护，再开启 USART 接收通路 */
+    /* 恢复寄存器写保护，再开启 USART 接收通路 */
     Board_PeriphLock();
 
     USART_FuncCmd(USART_UNIT, (USART_RX | USART_INT_RX | USART_RX_TIMEOUT |

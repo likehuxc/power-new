@@ -1,13 +1,13 @@
 /**
  *******************************************************************************
- * @file  app.h
+ * @file  led.h
  *******************************************************************************
  */
 
-#ifndef APP_H__
-#define APP_H__
+#ifndef LED_H__
+#define LED_H__
 
-void App_Init(void);
-void App_Process(void);
+void Led_Init(void);
+void Led_Task(void);
 
-#endif /* APP_H__ */
+#endif /* LED_H__ */
