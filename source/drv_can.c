@@ -56,7 +56,7 @@ int32_t DrvCan_Init(void)
     stcCanInit.stcBitCfg.u32SJW       = 2U;
     stcCanInit.pstcFilter             = astcFilter;
     stcCanInit.u16FilterSelect        = CAN_FILTER_SEL;
-    stcCanInit.u8WorkMode             = CAN_WORK_MD_ELB;
+    stcCanInit.u8WorkMode             = CAN_WORK_MD_ILB;
     stcCanInit.u8SelfAck              = CAN_SELF_ACK_ENABLE;
 
     FCG_Fcg1PeriphClockCmd(CAN_PERIPH_CLK, ENABLE);

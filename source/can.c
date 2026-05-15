@@ -15,11 +15,11 @@
 #define CAN_LOOPBACK_PERIOD_MS          500UL  /* 循环发送周期 */
 #define CAN_LOOPBACK_DLC                8U     /* 循环发送数据长度 */
 
-#define CAN_TX_ID1                      0xA1UL /* 循环发送ID1 */
+#define CAN_TX_ID1                      0x1UL /* 循环发送ID1 */
 #define CAN_TX_ID1_IDE                  0U
-#define CAN_TX_ID2                      0xB2UL /* 循环发送ID2 */
+#define CAN_TX_ID2                      0x2UL /* 循环发送ID2 */
 #define CAN_TX_ID2_IDE                  1U
-#define CAN_TX_ID3                      0xC3UL /* 循环发送ID3 */
+#define CAN_TX_ID3                      0x3UL /* 循环发送ID3 */
 #define CAN_TX_ID3_IDE                  1U
 
 static stc_drv_can_frame_t m_stcCanTx1;

@@ -60,3 +60,13 @@ MDK/JLinkLog.txt
 MDK/JLinkSettings.ini
 MDK/power_new.uvguix.26373
 MDK/power_new.uvguix.26373
+MDK/output/debug/can.d
+MDK/output/debug/can.o
+MDK/output/debug/drv_can.d
+MDK/output/debug/drv_can.o
+MDK/output/debug/hc32_ll_can.d
+MDK/output/debug/hc32_ll_can.o
+MDK/output/debug/led.d
+MDK/output/debug/led.o
+MDK/output/debug/uart.d
+MDK/output/debug/uart.o
