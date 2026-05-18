@@ -70,3 +70,5 @@ MDK/output/debug/led.d
 MDK/output/debug/led.o
 MDK/output/debug/uart.d
 MDK/output/debug/uart.o
+# Added by code-review-graph
+.code-review-graph/

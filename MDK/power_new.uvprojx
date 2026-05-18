@@ -435,9 +435,14 @@
               <FilePath>..\source\drv_led.c</FilePath>
             </File>
             <File>
-              <FileName>drv_uart_dma.c</FileName>
+              <FileName>drv_uart1_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\source\drv_uart_dma.c</FilePath>
+              <FilePath>..\source\drv_uart1_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_uart4_dma.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\drv_uart4_dma.c</FilePath>
             </File>
             <File>
               <FileName>drv_can.c</FileName>
