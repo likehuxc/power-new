@@ -43,47 +43,28 @@ int32_t Uart_Init(void)
     }
 
     drv_uart1_set_recv_callback(Uart1RecvCallback);
+		
+	return 1;
 
-    return drv_uart4_init(UART_BAUDRATE);
+//    return drv_uart4_init(UART_BAUDRATE);
 }
 
 void Uart_Task(void)
 {
-    static uint8_t  s_echo_buf[DRV_UART_DMA_TX_BUF_LEN_MAX];
-    static uint8_t  s_hold_valid;
-    static uint32_t s_hold_len;
-    uint32_t        u32Len;
-    int32_t         i32Ret;
+    uint8_t  au8Buf[DRV_UART_DMA_TX_BUF_LEN_MAX];
+    uint32_t u32Len;
 
-    /* 整帧接收完成后再回显（对应驱动里 rx_frame_end / rx_frame_done） */
     if (!drv_uart1_is_rx_frame_done()) {
         return;
     }
 
-    /* 上次发送忙：先重试已取出的数据，避免从 ring buf 重复读 */
-    if (0U != s_hold_valid) {
-        i32Ret = drv_uart1_send(s_echo_buf, (uint16_t)s_hold_len);
-        if (LL_OK != i32Ret) {
-            return;
-        }
-        s_hold_valid = 0U;
-    }
-
     while (!BUF_Empty(&s_uart1_ring_buf)) {
-        u32Len = BUF_Read(&s_uart1_ring_buf, s_echo_buf, DRV_UART_DMA_TX_BUF_LEN_MAX);
+        u32Len = BUF_Read(&s_uart1_ring_buf, au8Buf, DRV_UART_DMA_TX_BUF_LEN_MAX);
         if (0U == u32Len) {
             break;
         }
-
-        i32Ret = drv_uart1_send(s_echo_buf, (uint16_t)u32Len);
-        if (LL_OK != i32Ret) {
-            s_hold_len   = u32Len;
-            s_hold_valid = 1U;
-            return;
-        }
+        (void)drv_uart1_send(au8Buf, (uint16_t)u32Len);
     }
 
-    if (BUF_Empty(&s_uart1_ring_buf) && (0U == s_hold_valid)) {
-        drv_uart1_clear_rx_frame_done();
-    }
+    drv_uart1_clear_rx_frame_done();
 }

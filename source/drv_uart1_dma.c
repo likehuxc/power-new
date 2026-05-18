@@ -118,13 +118,17 @@ static void UART1_RestartRxDma(void)
 // 接收DMA传输完成中断回调函数
 static void UART1_RX_DMA_TC_IrqCallback(void)
 {
-    s_uart1_rx_frame_end  = SET;
-    s_uart1_rx_frame_done = 1U;
+    // 解决接收长度超过DMA缓冲区长度时，无法正确接收的问题，一帧结束统一放到超时中断中处理
+    // s_uart1_rx_frame_end  = SET;
+    // s_uart1_rx_frame_done = 1U;
+        /* 缓冲区已满，关闭RX超时功能 */
+    // USART_FuncCmd(UART1_UNIT, USART_RX_TIMEOUT, DISABLE);
+
     s_uart1_rx_len        = DRV_UART_DMA_FRAME_LEN_MAX;
     UART1_NotifyRecv(s_uart1_rx_buf, s_uart1_rx_len);
+    DMA_ClearTransCompleteStatus(UART1_RX_DMA_UNIT, UART1_RX_DMA_TC_FLAG);
 
-    /* 缓冲区已满，关闭RX超时功能 */
-    USART_FuncCmd(UART1_UNIT, USART_RX_TIMEOUT, DISABLE);
+    // 一帧满了，重启接收DMA
     UART1_RestartRxDma();
 }
 
@@ -186,14 +190,14 @@ static int32_t UART1_DMA_Config(void)
 
     /* ---- 接收DMA：DMA1 CH0，搬运 USART1_RDR → s_uart1_rx_buf ---- */
     (void)DMA_StructInit(&stcDmaInit);
-    stcDmaInit.u32IntEn      = DMA_INT_ENABLE;          /* 传输完成中断使能 */
-    stcDmaInit.u32BlockSize  = 1UL;                     /* 每次触发搬1字节 */
-    stcDmaInit.u32TransCount = DRV_UART_DMA_FRAME_LEN_MAX;   /* 总搬运次数=缓冲区大小 */
-    stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;      /* 8位数据宽度 */
-    stcDmaInit.u32DestAddr   = (uint32_t)s_uart1_rx_buf;   /* 目标：接收缓冲区 */
-    stcDmaInit.u32SrcAddr    = (uint32_t)(&UART1_UNIT->RDR); /* 源：USART数据寄存器 */
-    stcDmaInit.u32SrcAddrInc  = DMA_SRC_ADDR_FIX;      /* 源地址固定 */
-    stcDmaInit.u32DestAddrInc = DMA_DEST_ADDR_INC;     /* 目标地址自增 */
+    stcDmaInit.u32IntEn      = DMA_INT_ENABLE;                  /* 传输完成中断使能 */
+    stcDmaInit.u32BlockSize  = 1UL;                             /* 每次触发搬1字节 */
+    stcDmaInit.u32TransCount = DRV_UART_DMA_FRAME_LEN_MAX;      /* 总搬运次数=缓冲区大小 */
+    stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;              /* 8位数据宽度 */
+    stcDmaInit.u32DestAddr   = (uint32_t)s_uart1_rx_buf;        /* 目标：接收缓冲区 */
+    stcDmaInit.u32SrcAddr    = (uint32_t)(&UART1_UNIT->RDR);    /* 源：USART数据寄存器 */
+    stcDmaInit.u32SrcAddrInc  = DMA_SRC_ADDR_FIX;               /* 源地址固定 */
+    stcDmaInit.u32DestAddrInc = DMA_DEST_ADDR_INC;              /* 目标地址自增 */
     i32Ret = DMA_Init(UART1_RX_DMA_UNIT, UART1_RX_DMA_CH, &stcDmaInit);
     if (LL_OK == i32Ret) {
         /* 注册接收DMA传输完成中断 */

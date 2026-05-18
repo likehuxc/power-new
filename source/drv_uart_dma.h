@@ -10,7 +10,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define DRV_UART_DMA_FRAME_LEN_MAX      500U
+#define DRV_UART_DMA_FRAME_LEN_MAX      32U
 #define DRV_UART_DMA_TX_BUF_LEN_MAX     128U
 
 typedef void (*drv_uart_recv_cb_t)(const uint8_t *buf, uint16_t len);
