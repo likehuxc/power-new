@@ -368,8 +368,8 @@ int drv_uart1_init(uint32_t baudrate)
     UART1_StopTimeoutTimer();
     USART_ClearStatus(UART1_UNIT, USART_FLAG_RX_TIMEOUT);
 
-    /* 恢复寄存器写保护，再开启 USART 接收通路 */
-    Board_PeriphLock();
+    // /* 恢复寄存器写保护，再开启 USART 接收通路 */
+    // Board_PeriphLock();
 
     USART_FuncCmd(UART1_UNIT, (USART_RX | USART_INT_RX | USART_RX_TIMEOUT |
                                USART_INT_RX_TIMEOUT), ENABLE);

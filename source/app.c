@@ -132,6 +132,6 @@ void App_StartTasks(void)
 {
     (void)xTaskCreate(LedThread, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
     (void)xTaskCreate(Uart1Thread, "u1", 256, NULL, configMAX_PRIORITIES - 9, NULL);
-    (void)xTaskCreate(Uart4Thread, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
+//    (void)xTaskCreate(Uart4Thread, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
     (void)xTaskCreate(CanThread, "can", 256, NULL, configMAX_PRIORITIES - 7, NULL);
 }

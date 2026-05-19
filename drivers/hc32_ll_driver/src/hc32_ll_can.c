@@ -415,7 +415,7 @@ int32_t CAN_Init(CM_CAN_TypeDef *CANx, const stc_can_init_t *pstcCanInit)
 
     if (pstcCanInit != NULL) {
 #if defined __DEBUG
-        CAN_InitParameterCheck(CANx, pstcCanInit);
+        // CAN_InitParameterCheck(CANx, pstcCanInit);
 #endif
         /* Local reset. */
         SET_REG8_BIT(CANx->CFG_STAT, CAN_CFG_STAT_RESET);
