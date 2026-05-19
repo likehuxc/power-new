@@ -10,6 +10,8 @@
 #include <stdint.h>
 
 int32_t Uart_Init(void);
-void Uart_Task(void);
+void Uart1_Task(void);
+void Uart4_Task(void);
+void Uart_Printf(const char *fmt, ...);
 
 #endif /* UART_H__ */

@@ -71,7 +71,6 @@ static __IO uint16_t         s_uart1_rx_len;            /* 本帧实际接收字
 static uint8_t               s_uart1_rx_buf[DRV_UART_DMA_FRAME_LEN_MAX] = {0};   /* 接收缓冲区 */
 static uint8_t               s_uart1_tx_buf[DRV_UART_DMA_TX_BUF_LEN_MAX] = {0};   /* 发送缓冲区 */
 static drv_uart_recv_cb_t    s_uart1_recv_cb;            /* 接收回调函数 */
-static volatile uint8_t    s_uart1_rx_frame_done;      /* 一帧接收完成，供应用层查询 */
 
 static void UART1_StopTimeoutTimer(void);
 static uint16_t UART1_CalcTimeoutCompareValue(uint16_t timeout_bits, uint32_t clock_div);
@@ -90,16 +89,6 @@ static void UART1_NotifyRecv(const uint8_t *buf, uint16_t len)
     if ((NULL != s_uart1_recv_cb) && (NULL != buf) && (0U != len)) {
         s_uart1_recv_cb(buf, len);
     }
-}
-
-bool drv_uart1_is_rx_frame_done(void)
-{
-    return (0U != s_uart1_rx_frame_done);
-}
-
-void drv_uart1_clear_rx_frame_done(void)
-{
-    s_uart1_rx_frame_done = 0U;
 }
 
 /* 显式重启 RX DMA，为接收下一帧做好准备 */
@@ -145,8 +134,7 @@ static void UART1_TX_DMA_TC_IrqCallback(void)
 static void UART1_RxTimeout_IrqCallback(void)
 {
     if (s_uart1_rx_frame_end != SET) {
-        s_uart1_rx_frame_end  = SET;
-        s_uart1_rx_frame_done = 1U;
+        s_uart1_rx_frame_end = SET;
         /* 实际接收字节数 = 缓冲区总大小 - DMA剩余传输计数 */
         s_uart1_rx_len = DRV_UART_DMA_FRAME_LEN_MAX -
                          (uint16_t)DMA_GetTransCount(UART1_RX_DMA_UNIT, UART1_RX_DMA_CH);
@@ -326,8 +314,6 @@ int drv_uart1_init(uint32_t baudrate)
     if (0UL == baudrate) {
         return LL_ERR_INVD_PARAM;
     }
-
-    s_uart1_rx_frame_done = 0U;
 
     i32Ret = UART1_DMA_Config();
     if (LL_OK != i32Ret) {

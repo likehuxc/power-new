@@ -1,122 +1,179 @@
-/**
- *******************************************************************************
- * @file  can.c
- *******************************************************************************
- */
-
 #include "can.h"
 
-#include <string.h>
+static void (*recv_cb)(uint32_t id, uint8_t* buf, uint8_t len) = 0;
+static void (*error_cb)(can_error_t err, const char* err_msg) = 0;
+static void (*send_cb)(void) = 0;
 
-#include "board.h"
-#include "drv_can.h"
-#include "hc32_ll.h"
-
-#define CAN_LOOPBACK_PERIOD_MS          500UL  /* 循环发送周期 */
-#define CAN_LOOPBACK_DLC                8U     /* 循环发送数据长度 */
-
-#define CAN_TX_ID1                      0x1UL /* 循环发送ID1 */
-#define CAN_TX_ID1_IDE                  0U
-#define CAN_TX_ID2                      0x2UL /* 循环发送ID2 */
-#define CAN_TX_ID2_IDE                  1U
-#define CAN_TX_ID3                      0x3UL /* 循环发送ID3 */
-#define CAN_TX_ID3_IDE                  1U
-
-static stc_drv_can_frame_t m_stcCanTx1;
-static stc_drv_can_frame_t m_stcCanTx2;
-static stc_drv_can_frame_t m_stcCanTx3;
-static int32_t             m_i32CanLastError = LL_OK;
-
-static int32_t CanLoopback_Send(void);
-static void CanLoopback_Rx(void);
-static int32_t CanLoopback_Verify(const stc_drv_can_frame_t *pstcExpectFrame,
-                                  const stc_drv_can_frame_t *pstcRxFrame);
-
-int32_t Can_Init(void)
+// CAN 中断回调
+static void can_irq_callback(void)
 {
-    return DrvCan_Init();
-}
-
-void Can_Task(void)
-{
-    static uint32_t u32LastTick;
-    uint32_t        u32NowTick;
-
-    u32NowTick = Board_GetTick();
-    if ((u32NowTick - u32LastTick) >= CAN_LOOPBACK_PERIOD_MS) {
-        u32LastTick = u32NowTick;
-        m_i32CanLastError = CanLoopback_Send();
-        if (LL_OK == m_i32CanLastError) {
-            CanLoopback_Rx();
+    uint32_t status;
+    static __IO uint32_t i = 0;
+    
+    status = CAN_GetStatusValue(CM_CAN);
+    if(status != 0U) {
+        CAN_ClearStatus(CM_CAN, status);
+    }
+    // 帧接收通知
+    if((status & CAN_FLAG_RX) != 0U) {
+        stc_can_rx_frame_t frame;
+        if(CAN_GetRxFrame(CM_CAN, &frame) == LL_OK) {
+            // 过滤远程帧
+            if(recv_cb && (frame.RTR == 0)) {
+                recv_cb(frame.u32ID, frame.au8Data, frame.DLC);
+            }
+            i ++;
         }
     }
-}
-
-static int32_t CanLoopback_Send(void)
-{
-    uint8_t i;
-    static uint8_t u8Data;
-    int32_t i32Ret;
-
-    for (i = 0U; i < CAN_LOOPBACK_DLC; i++) {
-        m_stcCanTx1.au8Data[i] = u8Data++;
-        m_stcCanTx2.au8Data[i] = u8Data++;
-        m_stcCanTx3.au8Data[i] = u8Data++;
+    // 帧发送通知
+    if(status & CAN_FLAG_PTB_TX) {
+        if(send_cb) send_cb();
     }
+    if(status & CAN_FLAG_ERR_INT) {
+        // 接收上溢
+        if(status & CAN_FLAG_RX_OVERRUN) {
+            if(error_cb) error_cb(CAN_ERROR_RX_OVERRUN, "Rx Overrun");
+        }
+        // 总线关闭
+        if(status & CAN_FLAG_BUS_OFF) {
+            CAN_ExitLocalReset(CM_CAN);
+            if(error_cb) error_cb(CAN_ERROR_BUS_OFF, "Bus Off");
+        } else {
+            stc_can_error_info_t err;
+            CAN_GetErrorInfo(CM_CAN, &err);
 
-    m_stcCanTx1.u32ID = CAN_TX_ID1;
-    m_stcCanTx1.u8IDE = CAN_TX_ID1_IDE;
-    m_stcCanTx1.u8DLC = CAN_LOOPBACK_DLC;
-    i32Ret = DrvCan_Send(&m_stcCanTx1);
-    if (LL_OK != i32Ret) {
-        return i32Ret;
-    }
-
-    m_stcCanTx2.u32ID = CAN_TX_ID2;
-    m_stcCanTx2.u8IDE = CAN_TX_ID2_IDE;
-    m_stcCanTx2.u8DLC = CAN_LOOPBACK_DLC;
-    i32Ret = DrvCan_Send(&m_stcCanTx2);
-    if (LL_OK != i32Ret) {
-        return i32Ret;
-    }
-
-    m_stcCanTx3.u32ID = CAN_TX_ID3;
-    m_stcCanTx3.u8IDE = CAN_TX_ID3_IDE;
-    m_stcCanTx3.u8DLC = CAN_LOOPBACK_DLC;
-    return DrvCan_Send(&m_stcCanTx3);
-}
-
-static void CanLoopback_Rx(void)
-{
-    stc_drv_can_frame_t stcRxFrame;
-
-    while (LL_OK == DrvCan_Read(&stcRxFrame)) {
-        if (1U == stcRxFrame.u8SelfTx) {
-            switch (stcRxFrame.u32ID) {
-                case CAN_TX_ID1:
-                    m_i32CanLastError = CanLoopback_Verify(&m_stcCanTx1, &stcRxFrame);
-                    break;
-                case CAN_TX_ID2:
-                    m_i32CanLastError = CanLoopback_Verify(&m_stcCanTx2, &stcRxFrame);
-                    break;
-                case CAN_TX_ID3:
-                    m_i32CanLastError = CanLoopback_Verify(&m_stcCanTx3, &stcRxFrame);
-                    break;
-                default:
-                    m_i32CanLastError = LL_ERR;
-                    break;
+            switch(err.u8ErrorType) {
+                case CAN_ERR_NONE: if(error_cb) error_cb(CAN_ERROR_NONE, "NO error."); break;
+                case CAN_ERR_BIT: if(error_cb) error_cb(CAN_ERROR_BIT, "Bit Error."); break;
+                case CAN_ERR_FORM: if(error_cb) error_cb(CAN_ERROR_FORM, "Form Error."); break;
+                case CAN_ERR_STUFF: if(error_cb) error_cb(CAN_ERROR_STUFF, "Stuff Error."); break;
+                case CAN_ERR_ACK: if(error_cb) error_cb(CAN_ERROR_ACK, "ACK Error."); break;
+                case CAN_ERR_CRC: if(error_cb) error_cb(CAN_ERROR_CRC, "CRC Error."); break;
+                case CAN_ERR_OTHER: if(error_cb) error_cb(CAN_ERROR_OTHER, "Other Error."); break;
+                default: break;
             }
         }
     }
 }
 
-static int32_t CanLoopback_Verify(const stc_drv_can_frame_t *pstcExpectFrame,
-                                  const stc_drv_can_frame_t *pstcRxFrame)
+// CAN 初始化
+void can_init(can_baudrate_t baudrate)
 {
-    if ((pstcExpectFrame->u8DLC == pstcRxFrame->u8DLC) &&
-        (0 == memcmp(pstcExpectFrame->au8Data, pstcRxFrame->au8Data, pstcRxFrame->u8DLC))) {
-        return LL_OK;
-    }
+    /*
+        CAN GPIO 配置
+    */
+    // HC_CAN_RX: PB8 <---> Func51 (CAN_RxD)
+    GPIO_SetFunc(GPIO_PORT_B, GPIO_PIN_08, GPIO_FUNC_51);
+    // HC_CAN_TX: PB9 <---> Func50 (CAN_TxD)
+    GPIO_SetFunc(GPIO_PORT_B, GPIO_PIN_09, GPIO_FUNC_50);
 
-    return LL_ERR;
+    /*
+        CAN 时钟/波特率配置  
+    */
+    // 使能 CAN 时钟
+    FCG_Fcg1PeriphClockCmd(FCG1_PERIPH_CAN, ENABLE);
+    stc_can_init_t can;
+    CAN_StructInit(&can);
+
+#define PRESC   (can.stcBitCfg.u32Prescaler)
+#define SEG_1   (can.stcBitCfg.u32TimeSeg1)
+#define SEG_2   (can.stcBitCfg.u32TimeSeg2)
+#define SJW     (can.stcBitCfg.u32SJW)
+
+    // 波特率计算: baudrate = XTAL(12MHz) / [PRESC * (SEG_1 + SEG_2)]
+    switch(baudrate) {                                                              // Sample point
+        case CAN_BAUDRATE_1M:   PRESC = 1; SJW = 3; SEG_1 = 11; SEG_2 = 1; break;   // 76.9%
+        case CAN_BAUDRATE_500K: PRESC = 1; SJW = 3; SEG_1 = 21; SEG_2 = 3; break;   // 80.0%
+        case CAN_BAUDRATE_250K: PRESC = 2; SJW = 2; SEG_1 = 21; SEG_2 = 3; break;   // 88.0%
+        case CAN_BAUDRATE_200K: PRESC = 2; SJW = 2; SEG_1 = 26; SEG_2 = 4; break;   // 87.1%
+        case CAN_BAUDRATE_125K: PRESC = 2; SJW = 2; SEG_1 = 42; SEG_2 = 6; break;   // 87.8%
+        case CAN_BAUDRATE_100K: PRESC = 4; SJW = 1; SEG_1 = 26; SEG_2 = 4; break;   // 87.1%
+        default: break;
+    }
+    // CAN 过滤配置
+    can.pstcFilter             = 0;
+    can.u16FilterSelect        = CAN_FILTER1;
+    can.u8WorkMode             = CAN_WORK_MD_NORMAL;
+    CAN_Init(CM_CAN, &can);
+
+#undef PRESC
+#undef SEG_1
+#undef SEG_2
+#undef SJW
+
+    /*
+        CAN 中断配置
+    */
+    CAN_IntCmd(CM_CAN, CAN_INT_ALL, DISABLE);
+    CAN_IntCmd(CM_CAN, CAN_INT_PTB_TX | CAN_INT_RX | CAN_INT_ERR_INT, ENABLE);
+
+    stc_irq_signin_config_t irq;
+    irq.enIntSrc    = INT_SRC_CAN_INT;
+    irq.enIRQn      = INT010_IRQn;   /* 避开 USART1 占用的 INT000~INT004 */
+    irq.pfnCallback = &can_irq_callback;
+    INTC_IrqSignIn(&irq);
+
+    NVIC_ClearPendingIRQ(irq.enIRQn);
+    NVIC_SetPriority(irq.enIRQn, DDL_IRQ_PRIO_01);
+    NVIC_EnableIRQ(irq.enIRQn);
+}
+
+// CAN 发送帧
+static int __send_frame(uint32_t id, uint8_t ext_id, uint8_t* buf, uint8_t len)
+{
+    stc_can_tx_frame_t frame;
+    uint8_t  i;
+    uint32_t ms;
+	
+	if(CM_CAN->CFG_STAT & CAN_CFG_STAT_RESET) {
+		CM_CAN->CFG_STAT = 0;
+	}
+	
+    if(len > 8) len = 8;
+
+    frame.u32ID   = id;
+    frame.u32Ctrl = 0;
+    frame.DLC = len;
+    frame.IDE = ext_id;
+
+    for(i = 0; i < len; i ++) {
+        frame.au8Data[i] = buf[i];
+    }
+	uint32_t retry = 0;
+    while(CAN_FillTxFrame(CM_CAN, CAN_TX_BUF_PTB, &frame) != LL_OK) {
+        if(++ retry >= 10000) return -1;
+    }
+    CAN_StartTx(CM_CAN, CAN_TX_REQ_PTB);
+	
+    return 0;
+}
+
+// CAN 发送标准帧
+int can_send_std_frame(uint32_t id, uint8_t* buf, uint8_t len)
+{
+    return __send_frame(id, 0, buf, len);
+}
+
+// CAN 发送扩展帧
+int can_send_ext_frame(uint32_t id, uint8_t* buf, uint8_t len)
+{
+    return __send_frame(id, 1, buf, len);
+}
+
+// 设置接收回调
+void can_set_recv_callback(void (*cb)(uint32_t id, uint8_t* buf, uint8_t len))
+{
+    recv_cb = cb;
+}
+
+// 设置错误回调
+void can_set_error_callback(void (*cb)(can_error_t err, const char* err_msg))
+{
+    error_cb = cb;
+}
+
+// 设置发送回调
+void can_set_send_callback(void (*cb)(void))
+{
+    send_cb = cb;
 }

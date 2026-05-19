@@ -1,70 +1,129 @@
 /**
  *******************************************************************************
  * @file  uart.c
+ * @brief USART1/USART4 应用层：DMA 回调入队，任务出队处理（与 CAN 相同模式）
  *******************************************************************************
  */
 
 #include "uart.h"
 
+#include <stdarg.h>
+#include <stdio.h>
+
+#include "FreeRTOS.h"
+#include "stream_buffer.h"
+#include "task.h"
+
 #include "drv_uart_dma.h"
 #include "hc32_ll.h"
-#include "ring_buf.h"
 
-#define UART_BAUDRATE                   115200UL
+#define UART_BAUDRATE           115200UL
+#define UART_RX_STREAM_SIZE     (16U * DRV_UART_DMA_FRAME_LEN_MAX)
+#define UART_RX_TRIGGER_LEVEL   1U
+#define UART_RX_TASK_BUF_LEN    DRV_UART_DMA_TX_BUF_LEN_MAX
 
-/* 环形缓冲区：存放 USART1 已接收完成的一帧或多帧数据 */
-#define UART1_RING_BUF_SIZE             (DRV_UART_DMA_FRAME_LEN_MAX + 64U)
+static StreamBufferHandle_t s_uart1_rx_stream;
+static StreamBufferHandle_t s_uart4_rx_stream;
 
-static uint8_t          s_uart1_ring_storage[UART1_RING_BUF_SIZE];
-static stc_ring_buf_t   s_uart1_ring_buf;
-
-/* 接收回调：仅把本帧数据写入 ring buf（帧结束由驱动置 s_uart1_rx_frame_done） */
+/* USART1 接收回调：中断上下文，仅拷贝并入队 */
 static void Uart1RecvCallback(const uint8_t *buf, uint16_t len)
 {
-    if ((NULL == buf) || (0U == len)) {
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if ((NULL == buf) || (0U == len) || (NULL == s_uart1_rx_stream)) {
         return;
     }
 
-    (void)BUF_Write(&s_uart1_ring_buf, (uint8_t *)buf, len);
+    if (len > DRV_UART_DMA_FRAME_LEN_MAX) {
+        len = DRV_UART_DMA_FRAME_LEN_MAX;
+    }
+
+    (void)xStreamBufferSendFromISR(s_uart1_rx_stream, buf, (size_t)len,
+                                   &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
+}
+
+/* USART4 接收回调 */
+static void Uart4RecvCallback(const uint8_t *buf, uint16_t len)
+{
+    BaseType_t xHigherPriorityTaskWoken = pdFALSE;
+
+    if ((NULL == buf) || (0U == len) || (NULL == s_uart4_rx_stream)) {
+        return;
+    }
+
+    if (len > DRV_UART_DMA_FRAME_LEN_MAX) {
+        len = DRV_UART_DMA_FRAME_LEN_MAX;
+    }
+
+    (void)xStreamBufferSendFromISR(s_uart4_rx_stream, buf, (size_t)len,
+                                   &xHigherPriorityTaskWoken);
+    portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
 }
 
 int32_t Uart_Init(void)
 {
     int32_t ret;
 
+    s_uart1_rx_stream = xStreamBufferCreate(UART_RX_STREAM_SIZE, UART_RX_TRIGGER_LEVEL);
+    // s_uart4_rx_stream = xStreamBufferCreate(UART_RX_STREAM_SIZE, UART_RX_TRIGGER_LEVEL);
+    if (NULL == s_uart1_rx_stream) {
+        return LL_ERR;
+    }
+
     ret = drv_uart1_init(UART_BAUDRATE);
     if (LL_OK != ret) {
         return ret;
     }
-
-    ret = BUF_Init(&s_uart1_ring_buf, s_uart1_ring_storage, UART1_RING_BUF_SIZE);
-    if (LL_OK != ret) {
-        return ret;
-    }
-
     drv_uart1_set_recv_callback(Uart1RecvCallback);
-		
-	return 1;
-
-//    return drv_uart4_init(UART_BAUDRATE);
+    /* 暂时关闭 USART4 */
+    // ret = drv_uart4_init(UART_BAUDRATE);
+    // if (LL_OK != ret) {
+    //     return ret;
+    // }
+    // drv_uart4_set_recv_callback(Uart4RecvCallback);
+    return LL_OK;
 }
 
-void Uart_Task(void)
+/* 格式化输出到 USART1（调试/CAN 打印用） */
+void Uart_Printf(const char *fmt, ...)
 {
-    uint8_t  au8Buf[DRV_UART_DMA_TX_BUF_LEN_MAX];
-    uint32_t u32Len;
+    char    buf[160];
+    va_list ap;
+    int     n;
 
-    if (!drv_uart1_is_rx_frame_done()) {
-        return;
-    }
+    va_start(ap, fmt);
+    n = vsnprintf(buf, sizeof(buf), fmt, ap);
+    va_end(ap);
 
-    while (!BUF_Empty(&s_uart1_ring_buf)) {
-        u32Len = BUF_Read(&s_uart1_ring_buf, au8Buf, DRV_UART_DMA_TX_BUF_LEN_MAX);
-        if (0U == u32Len) {
-            break;
+    if (n > 0) {
+        if (n >= (int)sizeof(buf)) {
+            n = (int)sizeof(buf) - 1;
         }
-        (void)drv_uart1_send(au8Buf, (uint16_t)u32Len);
+        (void)drv_uart1_send((const uint8_t *)buf, (uint16_t)n);
     }
+}
 
-    drv_uart1_clear_rx_frame_done();
+/* USART1：阻塞读队列，回显 */
+void Uart1_Task(void)
+{
+    uint8_t rx_buf[UART_RX_TASK_BUF_LEN];
+    size_t  len;
+
+    len = xStreamBufferReceive(s_uart1_rx_stream, rx_buf, sizeof(rx_buf), portMAX_DELAY);
+    if (0U != len) {
+        (void)drv_uart1_send(rx_buf, (uint16_t)len);
+    }
+}
+
+/* USART4：阻塞读队列，回显 */
+void Uart4_Task(void)
+{
+    uint8_t rx_buf[UART_RX_TASK_BUF_LEN];
+    size_t  len;
+
+    len = xStreamBufferReceive(s_uart4_rx_stream, rx_buf, sizeof(rx_buf), portMAX_DELAY);
+    if (0U != len) {
+        (void)drv_uart4_send(rx_buf, (uint16_t)len);
+    }
 }

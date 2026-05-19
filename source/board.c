@@ -1,6 +1,7 @@
 /**
  *******************************************************************************
  * @file  board.c
+ * @brief 板级时钟与 SysTick；tick 递增在 main.c 的 vApplicationTickHook 中
  *******************************************************************************
  */
 
@@ -21,14 +22,8 @@ void Board_PeriphLock(void)
 void Board_Init(void)
 {
     BSP_CLK_Init();
+    /* 1ms 节拍；实际中断处理由 FreeRTOS 的 SysTick_Handler 进入 */
     (void)SysTick_Init(1000U);
-}
-
-void SysTick_Handler(void)
-{
-    SysTick_IncTick();
-
-    __DSB();
 }
 
 uint32_t Board_GetTick(void)
