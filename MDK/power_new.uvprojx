@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__DEBUG,HC32F460,USE_DDL_DRIVER,</Define>
               <Undefine></Undefine>
-              <IncludePath>..\source;..\drivers\cmsis\Device\HDSC\hc32f4xx\Include;..\drivers\cmsis\Include;..\drivers\hc32_ll_driver\inc;..\drivers\bsp\ev_hc32f460_lqfp100_v2;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F</IncludePath>
+              <IncludePath>..\source;..\drivers\cmsis\Device\HDSC\hc32f4xx\Include;..\drivers\cmsis\Include;..\drivers\hc32_ll_driver\inc;..\drivers\bsp\ev_hc32f460_lqfp100_v2;..\components\freertos\include;..\components\freertos\portable\RVDS\ARM_CM4F</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -532,7 +532,7 @@
             <File>
               <FileName>port.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\components\freertos\portable\GCC\ARM_CM4F\port.c</FilePath>
+              <FilePath>..\components\freertos\portable\RVDS\ARM_CM4F\port.c</FilePath>
             </File>
             <File>
               <FileName>heap_4.c</FileName>
