@@ -410,6 +410,11 @@
               <FilePath>..\source\app.c</FilePath>
             </File>
             <File>
+              <FileName>battery.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\battery.c</FilePath>
+            </File>
+            <File>
               <FileName>led.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\led.c</FilePath>
@@ -423,6 +428,11 @@
               <FileName>can.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\can.c</FilePath>
+            </File>
+            <File>
+              <FileName>can_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\can_port.c</FilePath>
             </File>
             <File>
               <FileName>board.c</FileName>
@@ -455,6 +465,11 @@
               <FilePath>..\source\app.h</FilePath>
             </File>
             <File>
+              <FileName>battery.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\battery.h</FilePath>
+            </File>
+            <File>
               <FileName>led.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\source\led.h</FilePath>
@@ -468,6 +483,11 @@
               <FileName>can.h</FileName>
               <FileType>5</FileType>
               <FilePath>..\source\can.h</FilePath>
+            </File>
+            <File>
+              <FileName>can_port.h</FileName>
+              <FileType>5</FileType>
+              <FilePath>..\source\can_port.h</FilePath>
             </File>
             <File>
               <FileName>board.h</FileName>

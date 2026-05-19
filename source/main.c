@@ -17,8 +17,25 @@
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
 {
     (void)xTask;
-    (void)pcTaskName;
     taskDISABLE_INTERRUPTS();
+
+    /* 直接用底层发送，不走 Uart_Printf（此时栈已不可信） */
+    {
+        static const char prefix[] = "\r\n[FATAL] Stack overflow: ";
+        static const char suffix[] = "\r\n";
+        extern int drv_uart1_send(const uint8_t *buf, uint16_t len);
+        uint16_t name_len = 0;
+
+        drv_uart1_send((const uint8_t *)prefix, (uint16_t)(sizeof(prefix) - 1U));
+        if (pcTaskName != NULL) {
+            while (pcTaskName[name_len] != '\0' && name_len < 8U) {
+                name_len++;
+            }
+            drv_uart1_send((const uint8_t *)pcTaskName, name_len);
+        }
+        drv_uart1_send((const uint8_t *)suffix, (uint16_t)(sizeof(suffix) - 1U));
+    }
+
     for (;;) {
     }
 }

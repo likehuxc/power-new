@@ -8,6 +8,7 @@
 #include "drv_uart_dma.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #include "hc32_ll.h"
 
@@ -125,6 +126,7 @@ static void UART4_RX_DMA_TC_IrqCallback(void)
 static void UART4_TX_DMA_TC_IrqCallback(void)
 {
     (void)DMA_ChCmd(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, DISABLE);
+    /* DMA TC 只表示数据已搬到 USART TDR，需等 USART TCI 后再清 busy。 */
     USART_FuncCmd(UART4_UNIT, USART_INT_TX_CPLT, ENABLE);
 
     DMA_ClearTransCompleteStatus(UART4_TX_DMA_UNIT, UART4_TX_DMA_TC_FLAG);
@@ -151,6 +153,7 @@ static void UART4_RxTimeout_IrqCallback(void)
 // 发送完成中断回调函数
 static void UART4_TxComplete_IrqCallback(void)
 {
+    /* TCI 表示最后一位已经移出发送移位寄存器，此时内部 TX 缓冲可复用。 */
     USART_FuncCmd(UART4_UNIT, (USART_TX | USART_INT_TX_CPLT), DISABLE);
     s_uart4_tx_busy = RESET;
 }
@@ -380,25 +383,34 @@ void drv_uart4_set_recv_callback(drv_uart_recv_cb_t cb)
     s_uart4_recv_cb = cb;
 }
 
-// 发送数据
+// 先把调用方数据复制到内部 TX 缓冲，再启动 DMA。
 int drv_uart4_send(const uint8_t *buf, uint16_t len)
 {
     int32_t i32Ret;
+    uint32_t spin = 0U;
 
     if ((NULL == buf) || (0U == len)) {
         return LL_ERR_INVD_PARAM;
     }
 
+    if (len > DRV_UART_DMA_TX_BUF_LEN_MAX) {
+        len = DRV_UART_DMA_TX_BUF_LEN_MAX;
+    }
+
+    while ((SET == s_uart4_tx_busy) && (spin < 5000000U)) {
+        spin++;
+    }
     if (SET == s_uart4_tx_busy) {
-        return LL_ERR_BUSY;
+        return LL_ERR_TIMEOUT;
     }
 
     s_uart4_tx_busy = SET;
+    (void)memcpy(s_uart4_tx_buf, buf, len);
 
     (void)DMA_ChCmd(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, DISABLE);
     DMA_ClearTransCompleteStatus(UART4_TX_DMA_UNIT, UART4_TX_DMA_TC_FLAG);
 
-    i32Ret = DMA_SetSrcAddr(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, (uint32_t)buf);
+    i32Ret = DMA_SetSrcAddr(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, (uint32_t)s_uart4_tx_buf);
     if (LL_OK == i32Ret) {
         i32Ret = DMA_SetTransCount(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, len);
     }
@@ -413,7 +425,8 @@ int drv_uart4_send(const uint8_t *buf, uint16_t len)
     } else {
         s_uart4_tx_busy = RESET;
         (void)DMA_ChCmd(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, DISABLE);
+        return i32Ret;
     }
 
-    return i32Ret;
+    return LL_OK;
 }

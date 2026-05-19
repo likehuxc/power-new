@@ -8,6 +8,7 @@
 #include "drv_uart_dma.h"
 
 #include <stddef.h>
+#include <string.h>
 
 #include "board.h"
 #include "hc32_ll.h"
@@ -383,25 +384,34 @@ void drv_uart1_set_recv_callback(drv_uart_recv_cb_t cb)
     s_uart1_recv_cb = cb;
 }
 
-// 发送数据
+// 先把调用方数据复制到内部 TX 缓冲，再启动 DMA。
 int drv_uart1_send(const uint8_t *buf, uint16_t len)
 {
     int32_t i32Ret;
+    uint32_t spin = 0U;
 
     if ((NULL == buf) || (0U == len)) {
         return LL_ERR_INVD_PARAM;
     }
 
+    if (len > DRV_UART_DMA_TX_BUF_LEN_MAX) {
+        len = DRV_UART_DMA_TX_BUF_LEN_MAX;
+    }
+
+    while ((SET == s_uart1_tx_busy) && (spin < 5000000U)) {
+        spin++;
+    }
     if (SET == s_uart1_tx_busy) {
-        return LL_ERR_BUSY;
+        return LL_ERR_TIMEOUT;
     }
 
     s_uart1_tx_busy = SET;
+    (void)memcpy(s_uart1_tx_buf, buf, len);
 
     (void)DMA_ChCmd(UART1_TX_DMA_UNIT, UART1_TX_DMA_CH, DISABLE);
     DMA_ClearTransCompleteStatus(UART1_TX_DMA_UNIT, UART1_TX_DMA_TC_FLAG);
 
-    i32Ret = DMA_SetSrcAddr(UART1_TX_DMA_UNIT, UART1_TX_DMA_CH, (uint32_t)buf);
+    i32Ret = DMA_SetSrcAddr(UART1_TX_DMA_UNIT, UART1_TX_DMA_CH, (uint32_t)s_uart1_tx_buf);
     if (LL_OK == i32Ret) {
         i32Ret = DMA_SetTransCount(UART1_TX_DMA_UNIT, UART1_TX_DMA_CH, len);
     }
@@ -416,7 +426,8 @@ int drv_uart1_send(const uint8_t *buf, uint16_t len)
     } else {
         s_uart1_tx_busy = RESET;
         (void)DMA_ChCmd(UART1_TX_DMA_UNIT, UART1_TX_DMA_CH, DISABLE);
+        return i32Ret;
     }
 
-    return i32Ret;
+    return LL_OK;
 }

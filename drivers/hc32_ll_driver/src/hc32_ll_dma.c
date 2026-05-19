@@ -356,6 +356,7 @@ void DMA_ClearTransCompleteStatus(CM_DMA_TypeDef *DMAx, uint32_t u32Flag)
     DDL_ASSERT(IS_DMA_UNIT(DMAx));
     DDL_ASSERT(IS_DMA_TRANS_FLAG(u32Flag));
 
+    /* INTCLR1 为写 1 清零寄存器，不要对它做读改写。 */
     WRITE_REG32(DMAx->INTCLR1, u32Flag);
 }
 
@@ -383,6 +384,7 @@ int32_t DMA_ChCmd(CM_DMA_TypeDef *DMAx, uint8_t u8Ch, en_functional_state_t enNe
     if (DMA_IDLE == u8DmaChEnState) {
         u8DmaChEnState = DMA_BUSY;
 
+        /* CHEN 是 DMA 单元内多通道共享寄存器，切换前先避开其他通道的使能收敛期。 */
         /* Read back channel enable register except current channel */
         u32Temp = (DMAx->CHEN & (~(1UL << u8Ch)));
         if (0UL != u32Temp) {
@@ -519,6 +521,7 @@ int32_t DMA_SetSrcAddr(CM_DMA_TypeDef *DMAx, uint8_t u8Ch, uint32_t u32Addr)
 
     WRITE_REG32(DMA_CH_REG(DMAx->SAR0, u8Ch), u32Addr);
 
+    /* MONSARx 是硬件锁存后的源地址，重试直到新地址真正生效。 */
     /* Ensure the address has been written */
     while (u32Addr != READ_REG32(DMA_CH_REG(DMAx->MONSAR0, u8Ch))) {
         u16Timeout++;
@@ -548,6 +551,7 @@ int32_t DMA_SetDestAddr(CM_DMA_TypeDef *DMAx, uint8_t u8Ch, uint32_t u32Addr)
 
     WRITE_REG32(DMA_CH_REG(DMAx->DAR0, u8Ch), u32Addr);
 
+    /* MONDARx 用来确认目标地址已经进入通道硬件逻辑。 */
     /* Ensure the address has been written */
     while (u32Addr != READ_REG32(DMA_CH_REG(DMAx->MONDAR0, u8Ch))) {
         u16Timeout++;
@@ -579,6 +583,7 @@ int32_t DMA_SetTransCount(CM_DMA_TypeDef *DMAx, uint8_t u8Ch, uint16_t u16Count)
     DTCTLx = &DMA_CH_REG(DMAx->DTCTL0, u8Ch);
     MODIFY_REG32(*DTCTLx, DMA_DTCTL_CNT, ((uint32_t)(u16Count) << DMA_DTCTL_CNT_POS));
     MONDTCTLx = &DMA_CH_REG(DMAx->MONDTCTL0, u8Ch);
+    /* 监视寄存器可能滞后于写入动作，需确认传输计数已被锁存。 */
     /* Ensure the transfer count has been written */
     while (u16Count != (READ_REG32_BIT(*MONDTCTLx, DMA_MONDTCTL_CNT) >> DMA_MONDTCTL_CNT_POS)) {
         u16Timeout++;
@@ -612,6 +617,7 @@ int32_t DMA_SetBlockSize(CM_DMA_TypeDef *DMAx, uint8_t u8Ch, uint16_t u16Size)
     MODIFY_REG32(*DTCTLx, DMA_DTCTL_BLKSIZE, u16Size);
 
     MONDTCTLx = &DMA_CH_REG(DMAx->MONDTCTL0, u8Ch);
+    /* 硬件在监视字段中用 0 表示 1024，比较前先归一化。 */
     /* Ensure the block size has been written */
     u16Size = ((DMA_MONDTCTL_BLKSIZE + 1U) == u16Size) ? 0U : u16Size;
     while (u16Size != READ_REG32_BIT(*MONDTCTLx, DMA_MONDTCTL_BLKSIZE)) {

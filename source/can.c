@@ -4,55 +4,84 @@ static void (*recv_cb)(uint32_t id, uint8_t* buf, uint8_t len) = 0;
 static void (*error_cb)(can_error_t err, const char* err_msg) = 0;
 static void (*send_cb)(void) = 0;
 
+/* 解析 CAN_FLAG_ERR_INT：可能是 ACK 失败、TEC/REC 越警告阈值、Bus-Off 等 */
+static void can_handle_error_status(uint32_t status)
+{
+    stc_can_error_info_t err;
+
+    if ((status & CAN_FLAG_RX_OVERRUN) != 0U) {
+        if (error_cb) {
+            error_cb(CAN_ERROR_RX_OVERRUN, "Rx Overrun");
+        }
+    }
+
+    if ((status & CAN_FLAG_BUS_OFF) != 0U) {
+        CAN_ExitLocalReset(CM_CAN);
+        if (error_cb) {
+            error_cb(CAN_ERROR_BUS_OFF, "Bus Off");
+        }
+        return;
+    }
+
+    (void)CAN_GetErrorInfo(CM_CAN, &err);
+
+    if ((status & CAN_FLAG_BUS_ERR) != 0U) {
+        switch (err.u8ErrorType) {
+            case CAN_ERR_BIT:   if (error_cb) error_cb(CAN_ERROR_BIT, "Bit Error"); break;
+            case CAN_ERR_FORM:  if (error_cb) error_cb(CAN_ERROR_FORM, "Form Error"); break;
+            case CAN_ERR_STUFF: if (error_cb) error_cb(CAN_ERROR_STUFF, "Stuff Error"); break;
+            case CAN_ERR_ACK:   if (error_cb) error_cb(CAN_ERROR_ACK, "ACK Error (no node ACK?)"); break;
+            case CAN_ERR_CRC:   if (error_cb) error_cb(CAN_ERROR_CRC, "CRC Error"); break;
+            case CAN_ERR_OTHER: if (error_cb) error_cb(CAN_ERROR_OTHER, "Other Error"); break;
+            default:            if (error_cb) error_cb(CAN_ERROR_OTHER, "Bus err, type unknown"); break;
+        }
+    } else if ((status & CAN_FLAG_TEC_REC_WARN) != 0U) {
+        if (error_cb) {
+            error_cb(CAN_ERROR_OTHER, "TEC/REC warn threshold");
+        }
+    } else if ((status & CAN_FLAG_ERR_INT) != 0U) {
+        /* 仅 EIF：多为发送无应答导致 TEC 变化，KOER 可能已为 0 */
+        if (error_cb) {
+            error_cb(CAN_ERROR_ACK, "ERR_INT (check TEC/ACK/baud/ID)");
+        }
+    }
+}
+
 // CAN 中断回调
 static void can_irq_callback(void)
 {
     uint32_t status;
-    static __IO uint32_t i = 0;
-    
-    status = CAN_GetStatusValue(CM_CAN);
-    if(status != 0U) {
-        CAN_ClearStatus(CM_CAN, status);
-    }
-    // 帧接收通知
-    if((status & CAN_FLAG_RX) != 0U) {
-        stc_can_rx_frame_t frame;
-        if(CAN_GetRxFrame(CM_CAN, &frame) == LL_OK) {
-            // 过滤远程帧
-            if(recv_cb && (frame.RTR == 0)) {
-                recv_cb(frame.u32ID, frame.au8Data, frame.DLC);
-            }
-            i ++;
-        }
-    }
-    // 帧发送通知
-    if(status & CAN_FLAG_PTB_TX) {
-        if(send_cb) send_cb();
-    }
-    if(status & CAN_FLAG_ERR_INT) {
-        // 接收上溢
-        if(status & CAN_FLAG_RX_OVERRUN) {
-            if(error_cb) error_cb(CAN_ERROR_RX_OVERRUN, "Rx Overrun");
-        }
-        // 总线关闭
-        if(status & CAN_FLAG_BUS_OFF) {
-            CAN_ExitLocalReset(CM_CAN);
-            if(error_cb) error_cb(CAN_ERROR_BUS_OFF, "Bus Off");
-        } else {
-            stc_can_error_info_t err;
-            CAN_GetErrorInfo(CM_CAN, &err);
 
-            switch(err.u8ErrorType) {
-                case CAN_ERR_NONE: if(error_cb) error_cb(CAN_ERROR_NONE, "NO error."); break;
-                case CAN_ERR_BIT: if(error_cb) error_cb(CAN_ERROR_BIT, "Bit Error."); break;
-                case CAN_ERR_FORM: if(error_cb) error_cb(CAN_ERROR_FORM, "Form Error."); break;
-                case CAN_ERR_STUFF: if(error_cb) error_cb(CAN_ERROR_STUFF, "Stuff Error."); break;
-                case CAN_ERR_ACK: if(error_cb) error_cb(CAN_ERROR_ACK, "ACK Error."); break;
-                case CAN_ERR_CRC: if(error_cb) error_cb(CAN_ERROR_CRC, "CRC Error."); break;
-                case CAN_ERR_OTHER: if(error_cb) error_cb(CAN_ERROR_OTHER, "Other Error."); break;
-                default: break;
+    status = CAN_GetStatusValue(CM_CAN);
+
+    /* 先处理再清除：原先先 Clear 会导致 GetErrorInfo 全 0 */
+    if ((status & CAN_FLAG_RX) != 0U) {
+        stc_can_rx_frame_t frame;
+        if (CAN_GetRxFrame(CM_CAN, &frame) == LL_OK) {
+            if (recv_cb && (frame.RTR == 0)) {
+                /* DLC 是位域，先读到局部变量；经典 CAN 下 DLC 即字节数(0~8) */
+                uint8_t rx_len = (uint8_t)frame.DLC;
+                if (rx_len > 8U) {
+                    rx_len = 8U;
+                }
+                recv_cb(frame.u32ID, frame.au8Data, rx_len);
             }
         }
+    }
+
+    if ((status & CAN_FLAG_PTB_TX) != 0U) {
+        if (send_cb) {
+            send_cb();
+        }
+    }
+
+    if ((status & (CAN_FLAG_ERR_INT | CAN_FLAG_BUS_ERR | CAN_FLAG_BUS_OFF |
+                   CAN_FLAG_RX_OVERRUN | CAN_FLAG_TEC_REC_WARN)) != 0U) {
+        can_handle_error_status(status);
+    }
+
+    if (status != 0U) {
+        CAN_ClearStatus(CM_CAN, status);
     }
 }
 
@@ -82,7 +111,7 @@ void can_init(can_baudrate_t baudrate)
 
     // 波特率计算: baudrate = XTAL(12MHz) / [PRESC * (SEG_1 + SEG_2)]
     switch(baudrate) {                                                              // Sample point
-        case CAN_BAUDRATE_1M:   PRESC = 1; SJW = 3; SEG_1 = 11; SEG_2 = 1; break;   // 76.9%
+        case CAN_BAUDRATE_1M:   PRESC = 1; SJW = 1; SEG_1 = 11; SEG_2 = 1; break;   // 1M, seg2>=sjw
         case CAN_BAUDRATE_500K: PRESC = 1; SJW = 3; SEG_1 = 21; SEG_2 = 3; break;   // 80.0%
         case CAN_BAUDRATE_250K: PRESC = 2; SJW = 2; SEG_1 = 21; SEG_2 = 3; break;   // 88.0%
         case CAN_BAUDRATE_200K: PRESC = 2; SJW = 2; SEG_1 = 26; SEG_2 = 4; break;   // 87.1%
