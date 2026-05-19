@@ -17,6 +17,5 @@
 void Board_PeriphUnlock(void);
 void Board_PeriphLock(void);
 void Board_Init(void);
-uint32_t Board_GetTick(void);
 
 #endif /* BOARD_H__ */

@@ -8,6 +8,6 @@
 #define LED_H__
 
 void Led_Init(void);
-void Led_Task(void);
+void Led_Task(void *param);
 
 #endif /* LED_H__ */

@@ -12,13 +12,6 @@
 
 #include "app.h"
 #include "board.h"
-#include "hc32_ll_utility.h"
-
-/* SysTick 由 FreeRTOS 接管；在此维护 Board_GetTick() 用的毫秒计数 */
-void vApplicationTickHook(void)
-{
-    SysTick_IncTick();
-}
 
 /* 任务栈溢出钩子（需在 FreeRTOSConfig.h 中开启检测） */
 void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)

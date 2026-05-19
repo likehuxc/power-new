@@ -24,6 +24,20 @@ typedef struct {
 
 static QueueHandle_t s_can_rx_queue;
 
+#define BATTERY_CAN_ID_STD              0x40U
+
+/* 协议帧 byte0..byte(n-1) 异或校验 */
+static uint8_t Calc_XOR_Checksum(const uint8_t *buf, uint8_t len)
+{
+    uint8_t cs = 0U;
+    uint8_t i;
+
+    for (i = 0U; i < len; i++) {
+        cs ^= buf[i];
+    }
+    return cs;
+}
+
 /* CAN 接收中断回调：仅入队，不做打印/解析 */
 static void CanRecvCallback(uint32_t id, uint8_t *buf, uint8_t len)
 {
@@ -65,17 +79,6 @@ static void CanApp_Init(void)
     can_set_error_callback(CanErrorCallback);
 }
 
-/* LED 任务：周期调用 Led_Task，内部用 Board_GetTick() 做 1s 闪烁 */
-static void LedThread(void *param)
-{
-    (void)param;
-
-    for (;;) {
-        Led_Task();
-        vTaskDelay(pdMS_TO_TICKS(10));
-    }
-}
-
 /* USART1 任务：阻塞读接收队列并回显 */
 static void Uart1Thread(void *param)
 {
@@ -93,6 +96,35 @@ static void Uart4Thread(void *param)
 
     for (;;) {
         Uart4_Task();
+    }
+}
+
+/* 电池通信测试任务：每秒发 0x82 短数据查询（sub_index=0x02 电压） */
+static void BatteryTestTask(void *param)
+{
+    uint8_t tx_buf[8];
+    int     ret;
+
+    (void)param;
+
+    for (;;) {
+        tx_buf[0] = 0x00U;
+        tx_buf[1] = 0x82U;
+        tx_buf[2] = 0x02U;
+        tx_buf[3] = 0x00U;
+        tx_buf[4] = 0x00U;
+        tx_buf[5] = 0x00U;
+        tx_buf[6] = 0x00U;
+        tx_buf[7] = Calc_XOR_Checksum(tx_buf, 7U);
+
+        ret = can_send_std_frame(BATTERY_CAN_ID_STD, tx_buf, 8U);
+        if (0 == ret) {
+            Uart_Printf("[BAT] volt query TX ok\r\n");
+        } else {
+            Uart_Printf("[BAT] volt query TX fail\r\n");
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(1000));
     }
 }
 
@@ -127,11 +159,12 @@ void App_Init(void)
     CanApp_Init();
 }
 
-/* 创建 LED / USART1 / USART4 / CAN 任务 */
+/* 创建 LED / USART1 / USART4 / CAN / 电池测试 任务 */
 void App_StartTasks(void)
 {
-    (void)xTaskCreate(LedThread, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
+    (void)xTaskCreate(Led_Task, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
     (void)xTaskCreate(Uart1Thread, "u1", 256, NULL, configMAX_PRIORITIES - 9, NULL);
 //    (void)xTaskCreate(Uart4Thread, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
     (void)xTaskCreate(CanThread, "can", 256, NULL, configMAX_PRIORITIES - 7, NULL);
+    (void)xTaskCreate(BatteryTestTask, "bat", 256, NULL, configMAX_PRIORITIES - 6, NULL);
 }
