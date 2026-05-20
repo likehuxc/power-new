@@ -59,11 +59,11 @@ static void CanPort_ErrorCallback(can_error_t err, const char *err_msg)
     stc_can_error_info_t info;
 
     (void)CAN_GetErrorInfo(CM_CAN, &info);
-    Log_Printf("CAN_ERR %u TEC=%u REC=%u %s\r\n",
-                (unsigned int)err,
-                (unsigned int)info.u8TxErrorCount,
-                (unsigned int)info.u8RxErrorCount,
-                (err_msg != NULL) ? err_msg : "");
+    // Log_Printf("CAN_ERR %u TEC=%u REC=%u %s\r\n",
+    //             (unsigned int)err,
+    //             (unsigned int)info.u8TxErrorCount,
+    //             (unsigned int)info.u8RxErrorCount,
+    //             (err_msg != NULL) ? err_msg : "");
 }
 
 /* 格式化 CAN 接收帧：整行一次 Log_Printf，避免 DMA 串口输出交错 */

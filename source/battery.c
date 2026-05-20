@@ -12,6 +12,7 @@
  *   CMD 0x82 0x97 : 复位
  *   CMD 0x13      : 版本查询/应答
  *   CMD 0x82      : 数据查询/应答（满充容量、剩余容量、电压）
+ *   CMD 0x00/0x55 : 不定长索引查询/应答（电池 SN，索引 0x5080）
  *******************************************************************************
  */
 
@@ -24,7 +25,8 @@
 #include "log.h"
 
 /* 电池 CAN 标准帧 ID */
-#define BATTERY_CAN_ID_STD              0x41U
+#define BATTERY_CAN_ID_RXD              0x41U
+#define BATTERY_CAN_ID_TXD              0x41U
 
 /* -----------------------------------------------------------------------
  * 命令与 payload 定义
@@ -39,29 +41,50 @@
 static const uint8_t BAT_CMD_RESET[7]             = { 0x82, 0x97, 0x00, 0x00, 0x00, 0x00, 0x01 };  /* 复位命令 */
 static const uint8_t BAT_CMD_VERSION_QUERY[7]     = { 0x00, 0x13, 0x00, 0x00, 0x00, 0x00, 0x00 };  /* 版本查询 */
 static const uint8_t BAT_CMD_FULL_CAP_QUERY[7]    = { 0x00, 0x82, 0x00, 0x00, 0x00, 0x00, 0x00 };  /* 满充容量查询 */
-static const uint8_t BAT_CMD_REMAIN_CAP_QUERY[7]  = { 0x00, 0x82, 0x01, 0x00, 0x00, 0x00, 0x00 };  /* 剩余容量查询 */
-static const uint8_t BAT_CMD_VOLT_QUERY[7]        = { 0x00, 0x82, 0x02, 0x00, 0x00, 0x00, 0x00 };  /* 电压查询 */
+static const uint8_t BAT_CMD_REMAIN_CAP_QUERY[7]  = { 0x00, 0x82, 0x00, 0x00, 0x00, 0x01, 0x00 };  /* 剩余容量查询 */
+static const uint8_t BAT_CMD_VOLT_QUERY[7]        = { 0x00, 0x82, 0x00, 0x00, 0x00, 0x02, 0x00 };  /* 电压查询 */
+static const uint8_t BAT_CMD_CURRENT_QUERY[7]     = { 0x00, 0x82, 0x00, 0x00, 0x00, 0x0E, 0x00 };  /* 电流查询 */
+static const uint8_t BAT_CMD_SN_QUERY[7]          = { 0x00, 0x55, 0x00, 0x00, 0x50, 0x80, 0x41 };  /* SN 不定长查询（索引 0x5080） */
+
+/* 电池 SN：索引 0x5080，走 0x55 多帧不定长应答 */
+#define BAT_SN_INDEX        0x5080U
+#define BAT_SN_BUF_MAX      64U
+
+static struct {
+    uint8_t data[BAT_SN_BUF_MAX];  /* value[0..n-1] 拼接区 */
+    uint8_t expect;                /* 帧0 byte7：数据长度 n（不含 CRC） */
+    uint8_t count;                 /* 已收 value 字节数 */
+    uint8_t crc[2];                /* 对端 CRC16，低字节在前 */
+    uint8_t crc_len;                /* 已收 CRC 字节数 */
+    uint8_t busy;                  /* 1=正在接收本次 SN */
+} s_sn;
 
 
 /* -----------------------------------------------------------------------
- * 公共查询 API
+ * 公共发送 API
  *
  * 对外暴露简洁接口，调用方无需关心 payload 数组与 CAN ID。
  * 返回值：0=发送成功，-1=发送失败
  * ----------------------------------------------------------------------- */
 static int Battery_SendFrame(uint32_t can_id, const uint8_t payload[7]);
+static void Battery_SnRxReset(void);
 
-#define BATTERY_QUERY_FUNC(name, cmd) \
-    int Battery_Query##name(void)     \
-    {                                 \
-        Log_Printf("[BAT] query %s\r\n", #name); \
-        return Battery_SendFrame(BATTERY_CAN_ID_STD, (cmd)); \
+/* 第三参数可选：发送前预处理（如 SN 需 SnRxReset） */
+#define BATTERY_SEND_FUNC(name, cmd, ...) \
+    int Battery_Send_##name(void)       \
+    {                                   \
+        __VA_ARGS__                     \
+        Log_Printf("[BAT] send %s\r\n", #name); \
+        return Battery_SendFrame(BATTERY_CAN_ID_TXD, (cmd)); \
     }
 
-BATTERY_QUERY_FUNC(Version,        BAT_CMD_VERSION_QUERY)
-BATTERY_QUERY_FUNC(FullCapacity,   BAT_CMD_FULL_CAP_QUERY)
-BATTERY_QUERY_FUNC(RemainCapacity, BAT_CMD_REMAIN_CAP_QUERY)
-BATTERY_QUERY_FUNC(Voltage,        BAT_CMD_VOLT_QUERY)
+BATTERY_SEND_FUNC(GetVersion,        BAT_CMD_VERSION_QUERY)
+BATTERY_SEND_FUNC(GetFullCapacity,   BAT_CMD_FULL_CAP_QUERY)
+BATTERY_SEND_FUNC(GetRemainCapacity, BAT_CMD_REMAIN_CAP_QUERY)
+BATTERY_SEND_FUNC(GetVoltage,        BAT_CMD_VOLT_QUERY)
+BATTERY_SEND_FUNC(GetCurrent,        BAT_CMD_CURRENT_QUERY)
+BATTERY_SEND_FUNC(GetSN,             BAT_CMD_SN_QUERY, Battery_SnRxReset();)
+BATTERY_SEND_FUNC(Reset,             BAT_CMD_RESET)
 
 
 /* -----------------------------------------------------------------------
@@ -80,22 +103,23 @@ void Battery_Task(void *param)
     (void)param;
 
     /* 第一步：发送复位命令，让电池进入工作状态 */
-     ret = Battery_SendFrame(BATTERY_CAN_ID_STD, BAT_CMD_RESET);
-     if (0 == ret) {
-         Log_Printf("[BAT] reset TX ok (ID 0x%02lX)\r\n",
-                     (unsigned long)BATTERY_CAN_ID_STD);
-     } else {
-         Log_Printf("[BAT] reset TX fail (ID 0x%02lX)\r\n",
-                     (unsigned long)BATTERY_CAN_ID_STD);
-    }
+    // ret = Battery_Send_Reset();
+    // if (0 == ret) {
+    //     Log_Printf("[BAT] reset TX ok (ID 0x%02lX)\r\n",
+    //                (unsigned long)BATTERY_CAN_ID_TXD);
+    // } else {
+    //     Log_Printf("[BAT] reset TX fail (ID 0x%02lX)\r\n",
+    //                (unsigned long)BATTERY_CAN_ID_TXD);
+    // }
 
-    /* 等待电池复位完成（电池收到复位后会上发一长串初始化数据） */
-    vTaskDelay(pdMS_TO_TICKS(2000));
+    // /* 等待电池复位完成（电池收到复位后会上发一长串初始化数据） */
+    // vTaskDelay(pdMS_TO_TICKS(3000));
 
-    /* 第二步：轮询查询，每条命令间隔 2s，避免总线拥堵 */
+    /* 第二步：轮询查询，每条命令间隔 3s，避免总线拥堵 测试发现2500ms也可以正常收到数据心跳数据*/
     for (;;) {
-        Battery_QueryVersion();
-        vTaskDelay(pdMS_TO_TICKS(2000));
+        // Battery_Send_GetSN();
+        Battery_Send_GetVersion();
+        vTaskDelay(pdMS_TO_TICKS(2700));
     }
 }
 
@@ -144,6 +168,99 @@ static uint8_t Battery_DecVersionDigit(uint8_t raw)
     return raw;
 }
 
+/** Modbus CRC16：对 value[0..n-1] 校验，多项式 0xA001，初值 0xFFFF */
+static uint16_t Battery_ModbusCrc16(const uint8_t *buf, uint16_t len)
+{
+    uint16_t crc = 0xFFFFU;
+    uint16_t i;
+    uint8_t  b;
+
+    for (i = 0U; i < len; i++) {
+        crc ^= buf[i];
+        for (b = 0U; b < 8U; b++) {
+            crc = (crc & 1U) ? (uint16_t)((crc >> 1) ^ 0xA001U) : (uint16_t)(crc >> 1);
+        }
+    }
+    return crc;
+}
+
+static void Battery_SnRxReset(void)
+{
+    s_sn.busy = s_sn.expect = s_sn.count = s_sn.crc_len = 0U;
+}
+
+/**
+ * @brief  解析 0x55 多帧 SN 应答（索引 0x5080）
+ * 帧0：byte2..5 为 4 字节 index（大端右对齐，0x5080 在 byte4/byte5），byte7=长度 n
+ * 帧1+：byte2..5 拼 value，满 n 字节后接 Modbus CRC16 低、高（可跨帧）
+ */
+static void Battery_ParseSnReply(const uint8_t *f, uint8_t len)
+{
+    uint8_t  i;
+    uint16_t idx;
+    uint16_t crc_calc;
+    uint16_t crc_rx;
+
+    if ((len < 8U) || (0x55U != f[0])) {
+        return;
+    }
+
+    /* 帧0：确认索引，取长度 n */
+    if (0U == f[1]) {
+        idx = ((uint16_t)f[4] << 8) | f[5];
+        if ((BAT_SN_INDEX != idx) || (0U == f[7]) || (f[7] > BAT_SN_BUF_MAX)) {
+            if ((BAT_SN_INDEX == idx) && (f[7] > BAT_SN_BUF_MAX)) {
+                Log_Printf("[BAT] SN invalid len %u\r\n", (unsigned)f[7]);
+            }
+            Battery_SnRxReset();
+            return;
+        }
+        s_sn.expect  = f[7];
+        s_sn.count   = 0U;
+        s_sn.crc_len = 0U;
+        s_sn.busy    = 1U;
+        Log_Printf("[BAT] SN rx start, len=%u\r\n", (unsigned)s_sn.expect);
+        return;
+    }
+
+    if (0U == s_sn.busy) {
+        return;
+    }
+
+    /* 帧1+：先拼 value，再收 CRC；收齐后立即 break，避免继续消费 byte4/5 */
+    for (i = 2U; i <= 5U; i++) {
+        if (s_sn.count < s_sn.expect) {
+            s_sn.data[s_sn.count++] = f[i];
+        } else if (s_sn.crc_len < 2U) {
+            s_sn.crc[s_sn.crc_len++] = f[i];
+        }
+        if ((s_sn.count == s_sn.expect) && (2U == s_sn.crc_len)) {
+            break;
+        }
+    }
+
+    if ((s_sn.count != s_sn.expect) || (2U != s_sn.crc_len)) {
+        return;
+    }
+
+    /* 收齐：Modbus CRC16 校验（crc[0]低字节，crc[1]高字节） */
+    crc_calc = Battery_ModbusCrc16(s_sn.data, s_sn.expect);
+    crc_rx   = (uint16_t)s_sn.crc[0] | ((uint16_t)s_sn.crc[1] << 8);
+    if (crc_calc != crc_rx) {
+        Log_Printf("[BAT] SN crc err (calc=0x%04X got=0x%04X)\r\n",
+                    (unsigned)crc_calc, (unsigned)crc_rx);
+        Battery_SnRxReset();
+        return;
+    }
+
+    Log_Printf("[BAT] SN (%u bytes): ", (unsigned)s_sn.expect);
+    for (i = 0U; i < s_sn.expect; i++) {
+        Log_Printf("%c", (char)s_sn.data[i]);
+    }
+    Log_Printf("\r\n----------------------------------------\r\n");
+    Battery_SnRxReset();
+}
+
 /**
  * @brief  通用 CAN 帧发送
  * @param  can_id   CAN 标准帧 ID
@@ -160,7 +277,9 @@ static int Battery_SendFrame(uint32_t can_id, const uint8_t payload[7])
         tx_buf[i] = payload[i];
     }
     tx_buf[7] = Battery_CalcXorChecksum(tx_buf, 7U);
-
+   Log_Printf("[BAT] tran ID:0x%02lX DATA: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+              can_id, tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3],
+              tx_buf[4], tx_buf[5], tx_buf[6], tx_buf[7]);
     return can_send_std_frame(can_id, tx_buf, 8U);
 }
 
@@ -233,6 +352,7 @@ static void Battery_ParseVersionReply(const uint8_t *rx_buf, uint8_t len)
  *   0x00 = 满充容量（mAh，uint32_t）
  *   0x01 = 剩余容量（mAh，uint32_t）
  *   0x02 = 电池电压（mV，int32_t，打印为 V）
+ *   0x0E = 电池电流（mA，int32_t，充电>0 放电≤0）
  */
 static void Battery_ParseDataReply(const uint8_t *rx_buf, uint8_t len)
 {
@@ -255,6 +375,7 @@ static void Battery_ParseDataReply(const uint8_t *rx_buf, uint8_t len)
         return;
     }
 
+
     /* 提取子索引和数据块 */
     sub_index = rx_buf[1];
     raw_u32   = Battery_ReadU32BE(&rx_buf[2]);  /* byte2..byte5 大端 */
@@ -275,9 +396,12 @@ static void Battery_ParseDataReply(const uint8_t *rx_buf, uint8_t len)
                     (long)(raw_i32 >= 0 ? raw_i32 % 1000 : -(raw_i32 % 1000)));
         break;
 
+    case 0x0EU:  /* 电池电流（mA，int32，充电>0 放电≤0） */
+        raw_i32 = (int32_t)raw_u32;
+        Log_Printf("[BAT] current: %ld mA\r\n", (long)raw_i32);
+        break;
+
     default:  /* 未知子索引，打印原始值供调试 */
-        Log_Printf("[BAT] data sub=0x%02X raw=0x%08lX\r\n",
-                    (unsigned)sub_index, (unsigned long)raw_u32);
         break;
     }
 }
@@ -296,6 +420,10 @@ void Battery_ParseCanFrame(uint32_t can_id, const uint8_t *rx_buf, uint8_t len)
         return;
     }
 
+    Log_Printf("[BAT] recv ID:0x%02lX DATA: %02X %02X %02X %02X %02X %02X %02X %02X\r\n",
+               (unsigned long)can_id,
+               rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4], rx_buf[5], rx_buf[6], rx_buf[7]);
+
     switch (rx_buf[0]) {
     case 0x13U:  /* 版本应答 */
         Battery_ParseVersionReply(rx_buf, len);
@@ -303,6 +431,10 @@ void Battery_ParseCanFrame(uint32_t can_id, const uint8_t *rx_buf, uint8_t len)
 
     case 0x82U:  /* 数据应答（容量/电压） */
         Battery_ParseDataReply(rx_buf, len);
+        break;
+
+    case 0x55U:  /* SN 多帧应答 */
+        Battery_ParseSnReply(rx_buf, len);
         break;
 
     default:
