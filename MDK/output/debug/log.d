@@ -1,4 +1,4 @@
-./output/debug/can_port.o: ..\source\can_port.c ..\source\can_port.h \
+./output/debug/log.o: ..\source\log.c ..\source\log.h \
   ..\components\freertos\include\FreeRTOS.h \
   ..\components\freertos\include\FreeRTOSConfig.h \
   ..\components\freertos\include\projdefs.h \
@@ -6,10 +6,10 @@
   ..\components\freertos\include\deprecated_definitions.h \
   ..\components\freertos\portable\GCC\ARM_CM4F\portmacro.h \
   ..\components\freertos\include\mpu_wrappers.h \
-  ..\components\freertos\include\queue.h \
+  ..\components\freertos\include\stream_buffer.h \
   ..\components\freertos\include\task.h \
-  ..\components\freertos\include\list.h ..\source\battery.h \
-  ..\source\can.h ..\drivers\hc32_ll_driver\inc\hc32_ll.h \
+  ..\components\freertos\include\list.h ..\source\drv_uart_dma.h \
+  ..\drivers\hc32_ll_driver\inc\hc32_ll.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_def.h \
   ..\drivers\cmsis\Device\HDSC\hc32f4xx\Include\hc32f4xx.h \
   ..\drivers\cmsis\Device\HDSC\hc32f4xx\Include\hc32f460.h \
@@ -30,4 +30,4 @@
   ..\drivers\hc32_ll_driver\inc\hc32_ll_sram.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_tmr0.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_usart.h \
-  ..\drivers\hc32_ll_driver\inc\hc32_ll_utility.h ..\source\log.h
+  ..\drivers\hc32_ll_driver\inc\hc32_ll_utility.h

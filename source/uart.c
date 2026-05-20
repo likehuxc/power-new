@@ -7,11 +7,7 @@
 
 #include "uart.h"
 
-#include <stdarg.h>
-#include <stdio.h>
-
 #include "FreeRTOS.h"
-#include "semphr.h"
 #include "stream_buffer.h"
 #include "task.h"
 
@@ -25,10 +21,6 @@
 
 static StreamBufferHandle_t s_uart1_rx_stream;
 static StreamBufferHandle_t s_uart4_rx_stream;
-
-/* Uart_Printf 共享静态缓冲 + 互斥锁，避免每次调用占用 300+ 字节栈 */
-static SemaphoreHandle_t    s_printf_mutex;
-static char                 s_printf_buf[160];
 
 /* USART1 接收回调：中断上下文，仅拷贝并入队 */
 static void Uart1RecvCallback(const uint8_t *buf, uint16_t len)
@@ -76,11 +68,6 @@ int32_t Uart_Init(void)
         return LL_ERR;
     }
 
-    s_printf_mutex = xSemaphoreCreateMutex();
-    if (NULL == s_printf_mutex) {
-        return LL_ERR;
-    }
-
     ret = drv_uart1_init(UART_BAUDRATE);
     if (LL_OK != ret) {
         return ret;
@@ -93,44 +80,6 @@ int32_t Uart_Init(void)
     // }
     // drv_uart4_set_recv_callback(Uart4RecvCallback);
     return LL_OK;
-}
-
-/* 格式化输出到 USART1（调试/CAN 打印用）
- * 使用静态缓冲 + mutex，避免每次调用占用 300+ 字节任务栈。 */
-void Uart_Printf(const char *fmt, ...)
-{
-    va_list ap;
-    int     n;
-
-    if (NULL == s_printf_mutex) {
-        /* 初始化前的早期打印：回退到栈缓冲（调度器未启动时不能用 mutex） */
-        char early_buf[80];
-        va_start(ap, fmt);
-        n = vsnprintf(early_buf, sizeof(early_buf), fmt, ap);
-        va_end(ap);
-        if (n > 0) {
-            if (n >= (int)sizeof(early_buf)) {
-                n = (int)sizeof(early_buf) - 1;
-            }
-            (void)drv_uart1_send((const uint8_t *)early_buf, (uint16_t)n);
-        }
-        return;
-    }
-
-    xSemaphoreTake(s_printf_mutex, portMAX_DELAY);
-
-    va_start(ap, fmt);
-    n = vsnprintf(s_printf_buf, sizeof(s_printf_buf), fmt, ap);
-    va_end(ap);
-
-    if (n > 0) {
-        if (n >= (int)sizeof(s_printf_buf)) {
-            n = (int)sizeof(s_printf_buf) - 1;
-        }
-        (void)drv_uart1_send((const uint8_t *)s_printf_buf, (uint16_t)n);
-    }
-
-    xSemaphoreGive(s_printf_mutex);
 }
 
 /* USART1：阻塞读队列，回显 */

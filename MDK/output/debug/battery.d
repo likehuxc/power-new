@@ -29,4 +29,4 @@
   ..\drivers\hc32_ll_driver\inc\hc32_ll_sram.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_tmr0.h \
   ..\drivers\hc32_ll_driver\inc\hc32_ll_usart.h \
-  ..\drivers\hc32_ll_driver\inc\hc32_ll_utility.h ..\source\uart.h
+  ..\drivers\hc32_ll_driver\inc\hc32_ll_utility.h ..\source\log.h

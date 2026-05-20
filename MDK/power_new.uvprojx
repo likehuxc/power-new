@@ -425,6 +425,11 @@
               <FilePath>..\source\uart.c</FilePath>
             </File>
             <File>
+              <FileName>log.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\source\log.c</FilePath>
+            </File>
+            <File>
               <FileName>can.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\source\can.c</FilePath>

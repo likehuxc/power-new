@@ -14,8 +14,9 @@
 #include "queue.h"
 #include "task.h"
 
+#include "battery.h"
 #include "can.h"
-#include "uart.h"
+#include "log.h"
 
 /* CAN 接收消息（中断 -> 队列 -> 任务） */
 typedef struct {
@@ -45,7 +46,7 @@ static void CanPort_RecvCallback(uint32_t id, uint8_t *buf, uint8_t len)
         msg.buf[i] = 0U;
     }
 
-    /* 中断里只做拷贝和入队，格式化/打印放到 CanPort_Task 里处理。 */
+    /* 中断里只做拷贝和入队，格式化/打印放到 CanPort_Task 里处理 */
     if (NULL != s_can_rx_queue) {
         (void)xQueueSendFromISR(s_can_rx_queue, &msg, &xHigherPriorityTaskWoken);
         portYIELD_FROM_ISR(xHigherPriorityTaskWoken);
@@ -58,14 +59,14 @@ static void CanPort_ErrorCallback(can_error_t err, const char *err_msg)
     stc_can_error_info_t info;
 
     (void)CAN_GetErrorInfo(CM_CAN, &info);
-    Uart_Printf("CAN_ERR %u TEC=%u REC=%u %s\r\n",
+    Log_Printf("CAN_ERR %u TEC=%u REC=%u %s\r\n",
                 (unsigned int)err,
                 (unsigned int)info.u8TxErrorCount,
                 (unsigned int)info.u8RxErrorCount,
                 (err_msg != NULL) ? err_msg : "");
 }
 
-/* 格式化 CAN 接收帧：整行一次 Uart_Printf，避免 DMA 串口输出交错。 */
+/* 格式化 CAN 接收帧：整行一次 Log_Printf，避免 DMA 串口输出交错 */
 static int CanPort_FormatRxLine(const can_port_msg_t *msg, char *line, size_t line_size)
 {
     static const char hex[] = "0123456789abcdef";
@@ -84,7 +85,7 @@ static int CanPort_FormatRxLine(const can_port_msg_t *msg, char *line, size_t li
     }
 
     for (i = 0U; i < msg->len; i++) {
-        /* 每个字节追加 " xx"，并预留 "\r\n\0"。 */
+        /* 每个字节追加 " xx"，并预留 "\r\n\0" */
         if (((size_t)pos + 6U) > line_size) {
             break;
         }
@@ -109,7 +110,7 @@ static int CanPort_FormatRxLine(const can_port_msg_t *msg, char *line, size_t li
 /* CAN 应用初始化：队列 + 1M 波特率 + 回调注册 */
 void CanPort_Init(void)
 {
-    /* 用队列隔离 CAN 中断时序和 UART 调试输出耗时。 */
+    /* 用队列隔离 CAN 中断时序与 UART 调试输出耗时 */
     s_can_rx_queue = xQueueCreate(32, sizeof(can_port_msg_t));
 
     can_init(CAN_BAUDRATE_1M);
@@ -126,9 +127,13 @@ void CanPort_Task(void *param)
 
     for (;;) {
         if (pdTRUE == xQueueReceive(s_can_rx_queue, &msg, portMAX_DELAY)) {
-            if (CanPort_FormatRxLine(&msg, line, sizeof(line)) > 0) {
-                Uart_Printf("%s", line);
-            }
+            /* 先打印原始帧数据（调试用） */
+            // if (CanPort_FormatRxLine(&msg, line, sizeof(line)) > 0) {
+            //     Log_Printf("%s", line);
+            // }
+
+            /* 分发给电池协议解析（按 byte0 命令码路由） */
+            Battery_ParseCanFrame(msg.id, msg.buf, msg.len);
         }
     }
 }

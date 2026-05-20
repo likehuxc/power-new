@@ -1,4 +1,4 @@
-/**
+﻿/**
  *******************************************************************************
  * @file  main.c
  * @brief 入口；外设与应用逻辑拆分至 board / drv / app，调度由 FreeRTOS 负责。
@@ -19,7 +19,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
     (void)xTask;
     taskDISABLE_INTERRUPTS();
 
-    /* 直接用底层发送，不走 Uart_Printf（此时栈已不可信） */
+    /* 直接用底层发送，不走 Log_Printf（此时栈已不可信） */
     {
         static const char prefix[] = "\r\n[FATAL] Stack overflow: ";
         static const char suffix[] = "\r\n";

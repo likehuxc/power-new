@@ -14,6 +14,7 @@
 #include "can_port.h"
 #include "hc32_ll.h"
 #include "led.h"
+#include "log.h"
 #include "uart.h"
 
 /* 外设与应用模块初始化（在启动调度器之前调用） */
@@ -25,15 +26,17 @@ void App_Init(void)
     /* 初始化外设 */
     Led_Init();
     Uart_Init();
+    Log_Init();
     CanPort_Init();
 }
 
-/* 创建 LED / USART1 / USART4 / CAN / 电池测试 任务 */
+/* 创建 LED / USART1 / USART4 / CAN / 电池测试 / 日志 任务 */
 void App_StartTasks(void)
 {
     (void)xTaskCreate(Led_Task, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
     (void)xTaskCreate(Uart1_Task, "u1", 512, NULL, configMAX_PRIORITIES - 9, NULL);
 //    (void)xTaskCreate(Uart4_Task, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
+    (void)xTaskCreate(UartLog_Task, "uart_log", 512, NULL, tskIDLE_PRIORITY + 2, NULL);
     (void)xTaskCreate(CanPort_Task, "can", 512, NULL, configMAX_PRIORITIES - 7, NULL);
     (void)xTaskCreate(Battery_Task, "bat", 512, NULL, configMAX_PRIORITIES - 6, NULL);
 }

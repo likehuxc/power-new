@@ -5,7 +5,13 @@
 
 void Battery_Task(void *param);
 
-/* 供 CAN 接收回调调用：解析 0x13 版本应答帧。 */
-void Battery_ParseVersionReply(const uint8_t *rx_buf, uint8_t len);
+/* CAN 帧分发入口：由 CanPort_Task 调用，内部按 CMD 字节分派解析 */
+void Battery_ParseCanFrame(uint32_t can_id, const uint8_t *rx_buf, uint8_t len);
+
+/* 公共查询 API */
+int Battery_QueryVersion(void);
+int Battery_QueryFullCapacity(void);
+int Battery_QueryRemainCapacity(void);
+int Battery_QueryVoltage(void);
 
 #endif /* BATTERY_H__ */
