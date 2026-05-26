@@ -10,6 +10,11 @@
 
 #include <stdint.h>
 
+#define LOG_INFO(fmt, ...) Log_Printf("[INFO] " fmt "\r\n", ##__VA_ARGS__)
+#define LOG_ERROR(fmt, ...) Log_Printf("[ERROR] " fmt "\r\n", ##__VA_ARGS__)
+#define LOG_WARN(fmt, ...) Log_Printf("[WARN] " fmt "\r\n", ##__VA_ARGS__)
+#define LOG_DEBUG(fmt, ...) Log_Printf("[DEBUG] " fmt "\r\n", ##__VA_ARGS__)
+
 int32_t Log_Init(void);
 void UartLog_Task(void *param);
 void Log_Printf(const char *fmt, ...);

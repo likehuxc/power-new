@@ -21,7 +21,6 @@
 #define __MAIN_H__
 
 #include "hc32_ll.h"
-#include "ev_hc32f460_lqfp100_v2_bsp.h"
 
 #endif /* __MAIN_H__ */
 

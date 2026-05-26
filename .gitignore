@@ -72,3 +72,6 @@ MDK/output/debug/uart.d
 MDK/output/debug/uart.o
 # Added by code-review-graph
 .code-review-graph/
+
+# Cursor 本地提交说明规则（SCM ✨ 生成用，不提交到仓库）
+.cursorrules

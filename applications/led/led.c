@@ -22,6 +22,8 @@ void Led_Task(void *param)
 {
     (void)param;
 
+    Led_Init();
+
     for (;;) {
         DrvLed_Toggle();
         vTaskDelay(pdMS_TO_TICKS(LED_BLINK_PERIOD_MS));

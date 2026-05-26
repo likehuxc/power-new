@@ -125,6 +125,8 @@ void CanPort_Task(void *param)
 
     (void)param;
 
+    CanPort_Init();
+
     for (;;) {
         if (pdTRUE == xQueueReceive(s_can_rx_queue, &msg, portMAX_DELAY)) {
             /* 先打印原始帧数据（调试用） */
