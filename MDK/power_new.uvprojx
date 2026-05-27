@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__DEBUG,HC32F460,USE_DDL_DRIVER,</Define>
               <Undefine></Undefine>
-              <IncludePath>..\;..\board;..\drivers;..\applications;..\applications\battery;..\applications\led;..\applications\uart;..\applications\eeprom;..\communication\can;..\communication\uart;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\communication\i2c;..\applications\imu</IncludePath>
+              <IncludePath>..\;..\board;..\drivers;..\applications;..\applications\battery;..\applications\led;..\applications\uart;..\applications\eeprom;..\communication\can;..\communication\uart;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\communication\i2c;..\applications\imu;..\communication\spi</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -448,6 +448,11 @@
               <FileName>drv_uart1_dma.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\communication\uart\drv_uart1_dma.c</FilePath>
+            </File>
+            <File>
+              <FileName>drv_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\communication\spi\drv_spi.c</FilePath>
             </File>
             <File>
               <FileName>drv_uart4_dma.c</FileName>
@@ -618,6 +623,11 @@
               <FileName>hc32_ll_tmr0.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_tmr0.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_spi.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_spi.c</FilePath>
             </File>
             <File>
               <FileName>hc32_ll_usart.c</FileName>
