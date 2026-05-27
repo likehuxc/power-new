@@ -9,6 +9,7 @@
 #define POWER_MANAGE_H__
 
 void PowerManage_Init(void);
+void PowerManage_Task(void *pvParameters);
 
 /* AI_MOTOR_BUS PA1/CH1 */
 extern float g_motor_bus_voltage;

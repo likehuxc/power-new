@@ -161,3 +161,14 @@ void PowerManage_Init(void)
     /* 启动 ADC1 DMA 连续扫描，结果通过 callback 更新全局变量 */
     adc_init(s_adc_table, (uint8_t)(sizeof(s_adc_table) / sizeof(s_adc_table[0])));
 }
+
+void PowerManage_Task(void *pvParameters)
+{
+    (void)pvParameters;
+
+    for (;;) {
+        LOG_INFO("motor_bus: %.2fV, chg_adpt: %.2fV, ibat_out_2: %.2fA, chg_pile: %.2fV, vbat_in_1: %.2fV, vbat_in_2: %.2fV, ibat_out_1: %.2fA, vbat_in: %.2fV",
+                 g_motor_bus_voltage, g_chg_adpt_voltage, g_ibat_out_2, g_chg_pile_voltage, g_vbat_in_1_voltage, g_vbat_in_2_voltage, g_ibat_out_1, g_vbat_in_voltage);
+        vTaskDelay(pdMS_TO_TICKS(1000U));
+    }
+}
