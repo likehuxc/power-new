@@ -1,13 +1,13 @@
 /**
  *******************************************************************************
- * @file  drv_spi.c
+ * @file  spi.c
  * @brief 硬件 SPI 主机驱动（DMA 模式，软件 CS）
  *        PD8=MOSI(func40), PD9=MISO(func41), PD10=CS(软件), PD11=SCK(func43)
  *        DMA1 CH2=TX, CH3=RX（CH0/CH1 已被 UART 占用）
  *******************************************************************************
  */
 
-#include "drv_spi.h"
+#include "spi.h"
 #include "FreeRTOS.h"
 #include "semphr.h"
 

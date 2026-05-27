@@ -1,14 +1,14 @@
 /**
  *******************************************************************************
- * @file  drv_spi.h
+ * @file  spi.h
  * @brief 硬件 SPI 主机驱动接口（DMA 模式，软件 CS）
  *        PD8=MOSI(func40), PD9=MISO(func41), PD10=CS(软件), PD11=SCK(func43)
  *        DMA1 CH2=TX, CH3=RX
  *******************************************************************************
  */
 
-#ifndef __DRV_SPI_H__
-#define __DRV_SPI_H__
+#ifndef __SPI_H__
+#define __SPI_H__
 
 #include "hc32_ll.h"
 
@@ -39,4 +39,4 @@ int32_t spi_write(uint8_t reg, const uint8_t *buf, uint32_t len);
  */
 int32_t spi_read(uint8_t reg, uint8_t *buf, uint32_t len);
 
-#endif /* __DRV_SPI_H__ */
+#endif /* __SPI_H__ */

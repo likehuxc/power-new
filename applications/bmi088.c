@@ -230,11 +230,11 @@ int32_t BMI088_Init(void)
 {
     int32_t ret;
 
-//    /* 初始化加速度计 */
-//    ret = bmi088_acc_init();
-//    if (ret != BMI088_OK) {
-//        return ret;
-//    }
+    /* 初始化加速度计 */
+    ret = bmi088_acc_init();
+    if (ret != BMI088_OK) {
+        return ret;
+    }
 
     /* 初始化陀螺仪 */
     ret = bmi088_gyro_init();

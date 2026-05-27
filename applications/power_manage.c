@@ -14,6 +14,9 @@
 
 #include "adc.h"
 #include "saf_filter.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "log.h"
 
 /* 分压还原系数：ADC 引脚电压 × 系数 = 实际电压(V)，与 d5w_pmu 一致 */
 #define ADC_SCALE_FACTOR        (22.27f)

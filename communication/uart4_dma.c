@@ -1,18 +1,18 @@
 /**
  *******************************************************************************
- * @file  drv_uart4_dma.c
+ * @file  uart4_dma.c
  * @brief USART4 DMA 驱动
  *******************************************************************************
  */
 
-#include "drv_uart_dma.h"
+#include "uart_dma.h"
 
 #include <stddef.h>
 #include <string.h>
 
 #include "hc32_ll.h"
 
-/* 接收DMA：DMA2 通道1，触发源为 USART4_RI */
+/* 接收DMA：DMA2 通道1，触发源�?USART4_RI */
 #define UART4_RX_DMA_UNIT               (CM_DMA2)
 #define UART4_RX_DMA_CH                 (DMA_CH1)
 #define UART4_RX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA2, ENABLE))
@@ -23,7 +23,7 @@
 #define UART4_RX_DMA_TC_IRQn            (INT005_IRQn)
 #define UART4_RX_DMA_TC_INT_SRC         (INT_SRC_DMA2_TC1)
 
-/* 发送DMA：DMA1 通道1，触发源为 USART4_TI */
+/* 发送DMA：DMA1 通道1，触发源�?USART4_TI */
 #define UART4_TX_DMA_UNIT               (CM_DMA1)
 #define UART4_TX_DMA_CH                 (DMA_CH1)
 #define UART4_TX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE))
@@ -34,12 +34,12 @@
 #define UART4_TX_DMA_TC_IRQn            (INT006_IRQn)
 #define UART4_TX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC1)
 
-/* TMR0：用于USART4接收超时检测 */
+/* TMR0：用于USART4接收超时检�?*/
 #define UART4_TMR0_UNIT                 (CM_TMR0_2)
 #define UART4_TMR0_CH                   (TMR0_CH_B)
 #define UART4_TMR0_FCG_ENABLE()         (FCG_Fcg2PeriphClockCmd(FCG2_PERIPH_TMR0_2, ENABLE))
 
-/* USART4 收发引脚定义（数据手册：Func36=USART4_TX，Func37=USART4_RX） */
+/* USART4 收发引脚定义（数据手册：Func36=USART4_TX，Func37=USART4_RX�?*/
 #define UART4_RX_PORT                   (GPIO_PORT_D)   /* PD8：USART4_RX */
 #define UART4_RX_PIN                    (GPIO_PIN_08)
 #define UART4_RX_GPIO_FUNC              (GPIO_FUNC_37)
@@ -62,14 +62,14 @@
 #define UART4_RX_TIMEOUT_IRQn           (INT009_IRQn)
 #define UART4_RX_TIMEOUT_INT_SRC        (INT_SRC_USART4_RTO)
 
-/* 接收超时位数（帧间隙超过此位时间则判定帧结束） */
+/* 接收超时位数（帧间隙超过此位时间则判定帧结束�?*/
 #define UART4_TIMEOUT_BITS              (2000U)
 
-static __IO en_flag_status_t s_uart4_rx_frame_end;        /* 接收帧结束标志 */
+static __IO en_flag_status_t s_uart4_rx_frame_end;        /* 接收帧结束标�?*/
 static __IO en_flag_status_t s_uart4_tx_busy;            /* 发送忙标志 */
-static __IO uint16_t         s_uart4_rx_len;            /* 本帧实际接收字节数 */
-static uint8_t               s_uart4_rx_buf[DRV_UART_DMA_FRAME_LEN_MAX] = {0};   /* 接收缓冲区 */
-static uint8_t               s_uart4_tx_buf[DRV_UART_DMA_TX_BUF_LEN_MAX] = {0};   /* 发送缓冲区 */
+static __IO uint16_t         s_uart4_rx_len;            /* 本帧实际接收字节�?*/
+static uint8_t               s_uart4_rx_buf[UART_DMA_FRAME_LEN_MAX] = {0};   /* 接收缓冲�?*/
+static uint8_t               s_uart4_tx_buf[UART_DMA_TX_BUF_LEN_MAX] = {0};   /* 发送缓冲区 */
 static drv_uart_recv_cb_t    s_uart4_recv_cb;            /* 接收回调函数 */
 
 static void UART4_StopTimeoutTimer(void);
@@ -91,7 +91,7 @@ static void UART4_NotifyRecv(const uint8_t *buf, uint16_t len)
     }
 }
 
-/* 显式重启 RX DMA，为接收下一帧做好准备 */
+/* 显式重启 RX DMA，为接收下一帧做好准�?*/
 static void UART4_RestartRxDma(void)
 {
     s_uart4_rx_frame_end = RESET;
@@ -99,7 +99,7 @@ static void UART4_RestartRxDma(void)
     (void)DMA_ChCmd(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, DISABLE);
     DMA_ClearTransCompleteStatus(UART4_RX_DMA_UNIT, UART4_RX_DMA_TC_FLAG);
     (void)DMA_SetDestAddr(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, (uint32_t)s_uart4_rx_buf);
-    (void)DMA_SetTransCount(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, DRV_UART_DMA_FRAME_LEN_MAX);
+    (void)DMA_SetTransCount(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, UART_DMA_FRAME_LEN_MAX);
     (void)DMA_SetBlockSize(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, 1U);
     (void)DMA_ChCmd(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, ENABLE);
 }
@@ -107,13 +107,13 @@ static void UART4_RestartRxDma(void)
 // 接收DMA传输完成中断回调函数
 static void UART4_RX_DMA_TC_IrqCallback(void)
 {
-    // 解决接收长度超过DMA缓冲区长度时，无法正确接收的问题，一帧结束统一放到超时中断中处理
+    // 解决接收长度超过DMA缓冲区长度时，无法正确接收的问题，一帧结束统一放到超时中断中处�?
     // s_uart4_rx_frame_end  = SET;
     // s_uart4_rx_frame_done = 1U;
         /* 缓冲区已满，关闭RX超时功能 */
     // USART_FuncCmd(UART4_UNIT, USART_RX_TIMEOUT, DISABLE);
 
-    s_uart4_rx_len       = DRV_UART_DMA_FRAME_LEN_MAX;
+    s_uart4_rx_len       = UART_DMA_FRAME_LEN_MAX;
     UART4_NotifyRecv(s_uart4_rx_buf, s_uart4_rx_len);
 
     DMA_ClearTransCompleteStatus(UART4_RX_DMA_UNIT, UART4_RX_DMA_TC_FLAG);
@@ -122,11 +122,11 @@ static void UART4_RX_DMA_TC_IrqCallback(void)
     UART4_RestartRxDma();
 }
 
-// 发送DMA传输完成中断回调函数，通知上层发送完成
+// 发送DMA传输完成中断回调函数，通知上层发送完�?
 static void UART4_TX_DMA_TC_IrqCallback(void)
 {
     (void)DMA_ChCmd(UART4_TX_DMA_UNIT, UART4_TX_DMA_CH, DISABLE);
-    /* DMA TC 只表示数据已搬到 USART TDR，需等 USART TCI 后再清 busy。 */
+    /* DMA TC 只表示数据已搬到 USART TDR，需�?USART TCI 后再�?busy�?*/
     USART_FuncCmd(UART4_UNIT, USART_INT_TX_CPLT, ENABLE);
 
     DMA_ClearTransCompleteStatus(UART4_TX_DMA_UNIT, UART4_TX_DMA_TC_FLAG);
@@ -137,11 +137,11 @@ static void UART4_RxTimeout_IrqCallback(void)
 {
     if (s_uart4_rx_frame_end != SET) {
         s_uart4_rx_frame_end = SET;
-        /* 实际接收字节数 = 缓冲区总大小 - DMA剩余传输计数 */
-        s_uart4_rx_len = DRV_UART_DMA_FRAME_LEN_MAX -
+        /* 实际接收字节�?= 缓冲区总大�?- DMA剩余传输计数 */
+        s_uart4_rx_len = UART_DMA_FRAME_LEN_MAX -
                          (uint16_t)DMA_GetTransCount(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH);
         UART4_NotifyRecv(s_uart4_rx_buf, s_uart4_rx_len);
-        /* 显式重启RX DMA，为接收下一帧做好准备 */
+        /* 显式重启RX DMA，为接收下一帧做好准�?*/
         UART4_RestartRxDma();
     }
 
@@ -150,10 +150,10 @@ static void UART4_RxTimeout_IrqCallback(void)
     USART_ClearStatus(UART4_UNIT, USART_FLAG_RX_TIMEOUT);
 }
 
-// 发送完成中断回调函数
+// 发送完成中断回调函�?
 static void UART4_TxComplete_IrqCallback(void)
 {
-    /* TCI 表示最后一位已经移出发送移位寄存器，此时内部 TX 缓冲可复用。 */
+    /* TCI 表示最后一位已经移出发送移位寄存器，此时内�?TX 缓冲可复用�?*/
     USART_FuncCmd(UART4_UNIT, (USART_TX | USART_INT_TX_CPLT), DISABLE);
     s_uart4_tx_busy = RESET;
 }
@@ -174,19 +174,19 @@ static int32_t UART4_DMA_Config(void)
     stc_dma_init_t stcDmaInit;
     stc_irq_signin_config_t stcIrqSignConfig;
 
-    /* 使能 DMA1、DMA2 及 AOS 时钟 */
+    /* 使能 DMA1、DMA2 �?AOS 时钟 */
     UART4_RX_DMA_FCG_ENABLE();
     UART4_TX_DMA_FCG_ENABLE();
     FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_AOS, ENABLE);
 
-    /* ---- 接收DMA：DMA2 CH1，搬运 USART4_RDR → s_uart4_rx_buf ---- */
+    /* ---- 接收DMA：DMA2 CH1，搬�?USART4_RDR �?s_uart4_rx_buf ---- */
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;                  /* 传输完成中断使能 */
-    stcDmaInit.u32BlockSize  = 1UL;                             /* 每次触发搬1字节 */
-    stcDmaInit.u32TransCount = DRV_UART_DMA_FRAME_LEN_MAX;      /* 总搬运次数=缓冲区大小 */
-    stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;              /* 8位数据宽度 */
+    stcDmaInit.u32BlockSize  = 1UL;                             /* 每次触发�?字节 */
+    stcDmaInit.u32TransCount = UART_DMA_FRAME_LEN_MAX;      /* 总搬运次�?缓冲区大�?*/
+    stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;              /* 8位数据宽�?*/
     stcDmaInit.u32DestAddr   = (uint32_t)s_uart4_rx_buf;        /* 目标：接收缓冲区 */
-    stcDmaInit.u32SrcAddr    = (uint32_t)(&UART4_UNIT->RDR);    /* 源：USART数据寄存器 */
+    stcDmaInit.u32SrcAddr    = (uint32_t)(&UART4_UNIT->RDR);    /* 源：USART数据寄存�?*/
     stcDmaInit.u32SrcAddrInc  = DMA_SRC_ADDR_FIX;               /* 源地址固定 */
     stcDmaInit.u32DestAddrInc = DMA_DEST_ADDR_INC;              /* 目标地址自增 */
     i32Ret = DMA_Init(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, &stcDmaInit);
@@ -200,7 +200,7 @@ static int32_t UART4_DMA_Config(void)
         NVIC_SetPriority(stcIrqSignConfig.enIRQn, DDL_IRQ_PRIO_DEFAULT);
         NVIC_EnableIRQ(stcIrqSignConfig.enIRQn);
 
-        /* 设置DMA触发事件源（每收到一字节触发一次DMA搬运） */
+        /* 设置DMA触发事件源（每收到一字节触发一次DMA搬运�?*/
         AOS_SetTriggerEventSrc(UART4_RX_DMA_TRIG_SEL, UART4_RX_DMA_TRIG_EVT_SRC);
 
         /* 使能DMA控制器、传输完成中断及通道 */
@@ -209,11 +209,11 @@ static int32_t UART4_DMA_Config(void)
         (void)DMA_ChCmd(UART4_RX_DMA_UNIT, UART4_RX_DMA_CH, ENABLE);
     }
 
-    /* ---- 发送DMA：DMA1 CH1，内存缓冲区 → USART4_TDR（通道按需启动） ---- */
+    /* ---- 发送DMA：DMA1 CH1，内存缓冲区 �?USART4_TDR（通道按需启动�?---- */
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;
     stcDmaInit.u32BlockSize  = 1UL;
-    stcDmaInit.u32TransCount = DRV_UART_DMA_TX_BUF_LEN_MAX;
+    stcDmaInit.u32TransCount = UART_DMA_TX_BUF_LEN_MAX;
     stcDmaInit.u32DataWidth  = DMA_DATAWIDTH_8BIT;
     stcDmaInit.u32DestAddr   = (uint32_t)(&UART4_UNIT->TDR); /* 目标：USART发送寄存器 */
     stcDmaInit.u32SrcAddr    = (uint32_t)s_uart4_tx_buf;        /* 源：占位，发送前重新配置 */
@@ -246,7 +246,7 @@ static uint16_t UART4_CalcTimeoutCompareValue(uint16_t timeout_bits, uint32_t cl
     uint16_t u16Delay;
     uint16_t u16CompareValue;
 
-    /* 根据分频系数确定同步延迟补偿值 */
+    /* 根据分频系数确定同步延迟补偿�?*/
     if (TMR0_CLK_DIV1 == clock_div) {
         u16Delay = 7U;
     } else if (TMR0_CLK_DIV2 == clock_div) {
@@ -259,14 +259,14 @@ static uint16_t UART4_CalcTimeoutCompareValue(uint16_t timeout_bits, uint32_t cl
         u16Delay = 2U;
     }
 
-    /* 计算比较值：将超时比特数换算为分频后的计数值，并减去同步延迟 */
+    /* 计算比较值：将超时比特数换算为分频后的计数值，并减去同步延�?*/
     u16Div          = (uint16_t)1U << (clock_div >> TMR0_BCONR_CKDIVA_POS);
     u16CompareValue = ((timeout_bits + u16Div - 1U) / u16Div) - u16Delay;
 
     return u16CompareValue;
 }
 
-// 停止超时定时器函数
+// 停止超时定时器函�?
 static void UART4_StopTimeoutTimer(void)
 {
     uint32_t u32ClrMask;
@@ -302,12 +302,12 @@ static void UART4_TMR0_Config(uint16_t timeout_bits)
         UART4_CalcTimeoutCompareValue(timeout_bits, stcTmr0Init.u32ClockDiv);
     (void)TMR0_Init(UART4_TMR0_UNIT, UART4_TMR0_CH, &stcTmr0Init);
 
-    /* 配置硬件自动启动和自动清零（由USART RX事件触发） */
+    /* 配置硬件自动启动和自动清零（由USART RX事件触发�?*/
     TMR0_HWStartCondCmd(UART4_TMR0_UNIT, UART4_TMR0_CH, ENABLE);
     TMR0_HWClearCondCmd(UART4_TMR0_UNIT, UART4_TMR0_CH, ENABLE);
 }
 
-// UART DMA初始化函数
+// UART DMA初始化函�?
 int drv_uart4_init(uint32_t baudrate)
 {
     stc_usart_uart_init_t   stcUartInit;
@@ -340,7 +340,7 @@ int drv_uart4_init(uint32_t baudrate)
         return i32Ret;
     }
 
-    /* 注册USART发送完成中断 */
+    /* 注册USART发送完成中�?*/
     stcIrqSigninConfig.enIRQn      = UART4_TX_CPLT_IRQn;
     stcIrqSigninConfig.enIntSrc    = UART4_TX_CPLT_INT_SRC;
     stcIrqSigninConfig.pfnCallback = &UART4_TxComplete_IrqCallback;
@@ -383,7 +383,7 @@ void drv_uart4_set_recv_callback(drv_uart_recv_cb_t cb)
     s_uart4_recv_cb = cb;
 }
 
-// 先把调用方数据复制到内部 TX 缓冲，再启动 DMA。
+// 先把调用方数据复制到内部 TX 缓冲，再启动 DMA�?
 int drv_uart4_send(const uint8_t *buf, uint16_t len)
 {
     int32_t i32Ret;
@@ -393,8 +393,8 @@ int drv_uart4_send(const uint8_t *buf, uint16_t len)
         return LL_ERR_INVD_PARAM;
     }
 
-    if (len > DRV_UART_DMA_TX_BUF_LEN_MAX) {
-        len = DRV_UART_DMA_TX_BUF_LEN_MAX;
+    if (len > UART_DMA_TX_BUF_LEN_MAX) {
+        len = UART_DMA_TX_BUF_LEN_MAX;
     }
 
     while ((SET == s_uart4_tx_busy) && (spin < 5000000U)) {

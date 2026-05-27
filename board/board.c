@@ -74,3 +74,24 @@ void Board_Init(void)
     // 10. 使能 EFM 缓存
     EFM_CacheCmd(ENABLE);
 }
+
+/*******************************************************************************
+ * DWT 周期计数器
+ ******************************************************************************/
+
+void Board_DWT_Init(void)
+{
+    CoreDebug->DEMCR |= CoreDebug_DEMCR_TRCENA_Msk;
+    DWT->CYCCNT = 0U;
+    DWT->CTRL |= DWT_CTRL_CYCCNTENA_Msk;
+}
+
+uint32_t Board_DWT_GetCycle(void)
+{
+    return DWT->CYCCNT;
+}
+
+uint32_t Board_DWT_GetElapsedUs(uint32_t start, uint32_t end)
+{
+    return (end - start) / (SystemCoreClock / 1000000UL);
+}

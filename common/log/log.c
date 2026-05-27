@@ -14,7 +14,7 @@
 #include "stream_buffer.h"
 #include "task.h"
 
-#include "drv_uart_dma.h"
+#include "uart_dma.h"
 #include "hc32_ll.h"
 
 #define UART_LOG_STREAM_SIZE    1024U

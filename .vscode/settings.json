@@ -1,6 +1,7 @@
 {
     "files.associations": {
-        "ev_hc32f460_lqfp100_v2_bsp.h": "c"
+        "ev_hc32f460_lqfp100_v2_bsp.h": "c",
+        "power_manage.h": "c"
     },
     "cmake.sourceDirectory": "C:/Users/26373/Desktop/work/power-new/components/freertos",
     "claudeCodeChat.permissions.yoloMode": true

@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__DEBUG,HC32F460,USE_DDL_DRIVER,</Define>
               <Undefine></Undefine>
-              <IncludePath>..\;..\board;..\drivers;..\applications;..\communication\can;..\communication\uart;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\components\saf_filter;..\communication\i2c;..\communication\spi</IncludePath>
+              <IncludePath>..\;..\board;..\drivers;..\applications;..\communication;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\components\saf_filter</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -442,32 +442,32 @@
             <File>
               <FileName>can.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\can\can.c</FilePath>
+              <FilePath>..\communication\can.c</FilePath>
             </File>
             <File>
               <FileName>can_port.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\can\can_port.c</FilePath>
+              <FilePath>..\communication\can_port.c</FilePath>
             </File>
             <File>
-              <FileName>drv_uart1_dma.c</FileName>
+              <FileName>uart1_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\uart\drv_uart1_dma.c</FilePath>
+              <FilePath>..\communication\uart1_dma.c</FilePath>
             </File>
             <File>
-              <FileName>drv_spi.c</FileName>
+              <FileName>spi.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\spi\drv_spi.c</FilePath>
+              <FilePath>..\communication\spi.c</FilePath>
             </File>
             <File>
-              <FileName>drv_uart4_dma.c</FileName>
+              <FileName>uart4_dma.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\uart\drv_uart4_dma.c</FilePath>
+              <FilePath>..\communication\uart4_dma.c</FilePath>
             </File>
             <File>
               <FileName>i2c.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\communication\i2c\i2c.c</FilePath>
+              <FilePath>..\communication\i2c.c</FilePath>
             </File>
           </Files>
         </Group>

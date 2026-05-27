@@ -1,13 +1,5 @@
-./output/debug/battery.o: ..\applications\battery.c \
-  ..\applications\battery.h ..\components\freertos\include\FreeRTOS.h \
-  ..\components\freertos\include\FreeRTOSConfig.h \
-  ..\components\freertos\include\projdefs.h \
-  ..\components\freertos\include\portable.h \
-  ..\components\freertos\include\deprecated_definitions.h \
-  ..\components\freertos\portable\GCC\ARM_CM4F\portmacro.h \
-  ..\components\freertos\include\mpu_wrappers.h \
-  ..\components\freertos\include\task.h \
-  ..\components\freertos\include\list.h ..\communication\can.h \
+./output/debug/uart1_dma.o: ..\communication\uart1_dma.c \
+  ..\communication\uart_dma.h ..\board\board.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_def.h \
   ..\libraries\cmsis\Device\HDSC\hc32f4xx\Include\hc32f4xx.h \
@@ -32,4 +24,4 @@
   ..\libraries\hc32_ll_driver\inc\hc32_ll_sram.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_tmr0.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_usart.h \
-  ..\libraries\hc32_ll_driver\inc\hc32_ll_utility.h ..\common\log\log.h
+  ..\libraries\hc32_ll_driver\inc\hc32_ll_utility.h

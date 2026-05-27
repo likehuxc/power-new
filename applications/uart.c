@@ -11,13 +11,13 @@
 #include "stream_buffer.h"
 #include "task.h"
 
-#include "drv_uart_dma.h"
+#include "uart_dma.h"
 #include "hc32_ll.h"
 
 #define UART_BAUDRATE           115200UL
-#define UART_RX_STREAM_SIZE     (16U * DRV_UART_DMA_FRAME_LEN_MAX)
+#define UART_RX_STREAM_SIZE     (16U * UART_DMA_FRAME_LEN_MAX)
 #define UART_RX_TRIGGER_LEVEL   1U
-#define UART_RX_TASK_BUF_LEN    DRV_UART_DMA_TX_BUF_LEN_MAX
+#define UART_RX_TASK_BUF_LEN    UART_DMA_TX_BUF_LEN_MAX
 
 static StreamBufferHandle_t s_uart1_rx_stream;
 static StreamBufferHandle_t s_uart4_rx_stream;
@@ -31,8 +31,8 @@ static void Uart1RecvCallback(const uint8_t *buf, uint16_t len)
         return;
     }
 
-    if (len > DRV_UART_DMA_FRAME_LEN_MAX) {
-        len = DRV_UART_DMA_FRAME_LEN_MAX;
+    if (len > UART_DMA_FRAME_LEN_MAX) {
+        len = UART_DMA_FRAME_LEN_MAX;
     }
 
     (void)xStreamBufferSendFromISR(s_uart1_rx_stream, buf, (size_t)len,
@@ -49,8 +49,8 @@ static void Uart4RecvCallback(const uint8_t *buf, uint16_t len)
         return;
     }
 
-    if (len > DRV_UART_DMA_FRAME_LEN_MAX) {
-        len = DRV_UART_DMA_FRAME_LEN_MAX;
+    if (len > UART_DMA_FRAME_LEN_MAX) {
+        len = UART_DMA_FRAME_LEN_MAX;
     }
 
     (void)xStreamBufferSendFromISR(s_uart4_rx_stream, buf, (size_t)len,
