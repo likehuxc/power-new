@@ -340,7 +340,7 @@
               <MiscControls></MiscControls>
               <Define>__DEBUG,HC32F460,USE_DDL_DRIVER,</Define>
               <Undefine></Undefine>
-              <IncludePath>..\;..\board;..\drivers;..\applications;..\applications\battery;..\applications\led;..\applications\uart;..\applications\eeprom;..\communication\can;..\communication\uart;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\communication\i2c;..\applications\imu;..\communication\spi</IncludePath>
+              <IncludePath>..\;..\board;..\drivers;..\applications;..\communication\can;..\communication\uart;..\common\ring_buf;..\common\log;..\libraries\cmsis\Device\HDSC\hc32f4xx\Include;..\libraries\cmsis\Include;..\libraries\hc32_ll_driver\inc;..\components\freertos\include;..\components\freertos\portable\GCC\ARM_CM4F;..\components\saf_filter;..\communication\i2c;..\communication\spi</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -407,27 +407,32 @@
             <File>
               <FileName>battery.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\applications\battery\battery.c</FilePath>
+              <FilePath>..\applications\battery.c</FilePath>
             </File>
             <File>
               <FileName>led.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\applications\led\led.c</FilePath>
+              <FilePath>..\applications\led.c</FilePath>
             </File>
             <File>
               <FileName>uart.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\applications\uart\uart.c</FilePath>
+              <FilePath>..\applications\uart.c</FilePath>
             </File>
             <File>
               <FileName>eeprom.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\applications\eeprom\eeprom.c</FilePath>
+              <FilePath>..\applications\eeprom.c</FilePath>
             </File>
             <File>
               <FileName>bmi088.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\applications\imu\bmi088.c</FilePath>
+              <FilePath>..\applications\bmi088.c</FilePath>
+            </File>
+            <File>
+              <FileName>power_manage.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\applications\power_manage.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -473,6 +478,21 @@
               <FileName>drv_led.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\drivers\drv_led.c</FilePath>
+            </File>
+            <File>
+              <FileName>adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\adc.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>components</GroupName>
+          <Files>
+            <File>
+              <FileName>saf_filter.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\components\saf_filter\saf_filter.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -553,6 +573,11 @@
               <FileName>hc32_ll_aos.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_aos.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_adc.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_adc.c</FilePath>
             </File>
             <File>
               <FileName>hc32_ll_can.c</FileName>

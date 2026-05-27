@@ -3624,7 +3624,7 @@
       <Size>100</Size>
       <ActiveTab>11</ActiveTab>
       <Doc>
-        <Name>..\applications\led\led.c</Name>
+        <Name>..\applications\led.c</Name>
         <ColumnNumber>26</ColumnNumber>
         <TopLine>1</TopLine>
         <CurrentLine>21</CurrentLine>
@@ -3678,7 +3678,7 @@
         <PaneID>0</PaneID>
       </Doc>
       <Doc>
-        <Name>..\applications\eeprom\eeprom.c</Name>
+        <Name>..\applications\eeprom.c</Name>
         <ColumnNumber>0</ColumnNumber>
         <TopLine>44</TopLine>
         <CurrentLine>56</CurrentLine>
@@ -3723,7 +3723,7 @@
         <PaneID>0</PaneID>
       </Doc>
       <Doc>
-        <Name>..\applications\imu\bmi088.c</Name>
+        <Name>..\applications\bmi088.c</Name>
         <ColumnNumber>0</ColumnNumber>
         <TopLine>195</TopLine>
         <CurrentLine>222</CurrentLine>

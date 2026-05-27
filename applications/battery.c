@@ -406,14 +406,29 @@ static void Battery_ParseDataReply(const uint8_t *rx_buf, uint8_t len)
     }
 }
 
+typedef void (*Battery_CanFrameParser)(const uint8_t *rx_buf, uint8_t len);
+
+typedef struct {
+    uint8_t cmd;
+    Battery_CanFrameParser parser;
+} Battery_CanFrameParserEntry;
+
+static const Battery_CanFrameParserEntry s_can_frame_parser_table[] = {
+    { 0x13U, Battery_ParseVersionReply },  /* 版本应答 */
+    { 0x82U, Battery_ParseDataReply },     /* 数据应答（容量/电压） */
+    { 0x55U, Battery_ParseSnReply },       /* SN 多帧应答 */
+};
+
 /* -----------------------------------------------------------------------
  * CAN 帧分发入口
  *
- * 由 CanPort_Task() 在任务上下文中调用，根据 byte0 命令码分派到对应解析函数。
+ * 由 CanPort_Task() 在任务上下文中调用，根据 byte0 命令码查表分派到对应解析函数。
  * 这样 can_port.c 不需要了解电池协议细节，所有协议逻辑集中在 battery.c。
  * ----------------------------------------------------------------------- */
 void Battery_ParseCanFrame(uint32_t can_id, const uint8_t *rx_buf, uint8_t len)
 {
+    uint8_t i;
+
     (void)can_id;  /* 暂不过滤 CAN ID，后续可按需添加 */
 
     if ((NULL == rx_buf) || (len < 1U)) {
@@ -424,21 +439,12 @@ void Battery_ParseCanFrame(uint32_t can_id, const uint8_t *rx_buf, uint8_t len)
                (unsigned long)can_id,
                rx_buf[0], rx_buf[1], rx_buf[2], rx_buf[3], rx_buf[4], rx_buf[5], rx_buf[6], rx_buf[7]);
 
-    switch (rx_buf[0]) {
-    case 0x13U:  /* 版本应答 */
-        Battery_ParseVersionReply(rx_buf, len);
-        break;
-
-    case 0x82U:  /* 数据应答（容量/电压） */
-        Battery_ParseDataReply(rx_buf, len);
-        break;
-
-    case 0x55U:  /* SN 多帧应答 */
-        Battery_ParseSnReply(rx_buf, len);
-        break;
-
-    default:
-        /* 未识别的命令码，静默忽略 */
-        break;
+    for (i = 0U; i < (uint8_t)(sizeof(s_can_frame_parser_table) / sizeof(s_can_frame_parser_table[0])); i++) {
+        if (rx_buf[0] == s_can_frame_parser_table[i].cmd) {
+            s_can_frame_parser_table[i].parser(rx_buf, len);
+            return;
+        }
     }
+
+    /* 未识别的命令码，静默忽略 */
 }

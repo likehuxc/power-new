@@ -161,9 +161,9 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>1</BreakIfRCount>
-          <Filename>..\applications\imu\bmi088.c</Filename>
+          <Filename>..\applications\bmi088.c</Filename>
           <ExecCommand></ExecCommand>
-          <Expression>\\power_new\../applications/imu/bmi088.c\197</Expression>
+          <Expression>\\power_new\../applications/bmi088.c\197</Expression>
         </Bp>
         <Bp>
           <Number>1</Number>
@@ -177,7 +177,7 @@
           <SizeOfObject>0</SizeOfObject>
           <BreakByAccess>0</BreakByAccess>
           <BreakIfRCount>0</BreakIfRCount>
-          <Filename>..\applications\imu\bmi088.c</Filename>
+          <Filename>..\applications\bmi088.c</Filename>
           <ExecCommand></ExecCommand>
           <Expression></Expression>
         </Bp>
@@ -355,7 +355,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\applications\battery\battery.c</PathWithFileName>
+      <PathWithFileName>..\applications\battery.c</PathWithFileName>
       <FilenameWithoutPath>battery.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -367,7 +367,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\applications\led\led.c</PathWithFileName>
+      <PathWithFileName>..\applications\led.c</PathWithFileName>
       <FilenameWithoutPath>led.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -379,7 +379,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\applications\uart\uart.c</PathWithFileName>
+      <PathWithFileName>..\applications\uart.c</PathWithFileName>
       <FilenameWithoutPath>uart.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -391,7 +391,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\applications\eeprom\eeprom.c</PathWithFileName>
+      <PathWithFileName>..\applications\eeprom.c</PathWithFileName>
       <FilenameWithoutPath>eeprom.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>
@@ -403,7 +403,7 @@
       <tvExp>0</tvExp>
       <tvExpOptDlg>0</tvExpOptDlg>
       <bDave2>0</bDave2>
-      <PathWithFileName>..\applications\imu\bmi088.c</PathWithFileName>
+      <PathWithFileName>..\applications\bmi088.c</PathWithFileName>
       <FilenameWithoutPath>bmi088.c</FilenameWithoutPath>
       <RteFlg>0</RteFlg>
       <bShared>0</bShared>

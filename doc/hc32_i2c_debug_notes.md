@@ -253,6 +253,6 @@ I2C_Cmd(unit, ENABLE);              // 4. 重新使能外设
 |------|------|
 | `communication/i2c/i2c.c` | 硬件 I2C 主机驱动（轮询模式，多实例，含总线恢复） |
 | `communication/i2c/i2c.h` | I2C 驱动接口（配置结构体 + 句柄） |
-| `applications/eeprom/eeprom.c` | EEPROM 读写驱动（基于 I2C1） |
-| `applications/imu/bmi088.c` | BMI088 IMU 驱动（基于 I2C2） |
+| `applications/eeprom.c` | EEPROM 读写驱动（基于 I2C1） |
+| `applications/bmi088.c` | BMI088 IMU 驱动（基于 I2C2） |
 | `libraries/hc32_ll_driver/src/hc32_ll_i2c.c` | HC32 LL 库 I2C 底层实现 |

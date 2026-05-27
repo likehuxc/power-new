@@ -11,7 +11,7 @@
 | 目标 MCU | HC32F460（LQFP100，DDL Rev3.3.0） |
 | OS | FreeRTOS V202012.00（已在用） |
 | 改造文件 | `communication/i2c/i2c.h`、`communication/i2c/i2c.c`（新增中断版） |
-| 受影响应用 | `applications/eeprom/eeprom.c`、`applications/imu/bmi088.c` |
+| 受影响应用 | `applications/eeprom.c`、`applications/bmi088.c` |
 | 启动/调度 | `main.c` → `Board_Init` → `App_Init` → `App_StartTasks` → `vTaskStartScheduler` |
 | 当前波特率 | 100 kHz（I2C1=EEPROM, I2C2=BMI088） |
 
@@ -248,8 +248,8 @@ NVIC_SetPriorityGrouping(3)  // 全部 4 bit 为抢占优先级
 |------|------|------|
 | `communication/i2c/i2c.h` | **小改** | 句柄新增 `done_sem`、`bus_mtx`、`state`；API 不变 |
 | `communication/i2c/i2c.c` | **重写** | 全量替换为中断版（保留 `i2c_recover` 实现） |
-| `applications/eeprom/eeprom.c` | **不改** | API 兼容；`vTaskDelay` 已经存在 |
-| `applications/imu/bmi088.c` | **不改** | 同上 |
+| `applications/eeprom.c` | **不改** | API 兼容；`vTaskDelay` 已经存在 |
+| `applications/bmi088.c` | **不改** | 同上 |
 | `applications/app.c` | **不改** | 不动 |
 | `board/board.c` | 视情况 | 如果 I2C 初始化挪到 `Board_Init`，否则保持 `Eeprom_Task`/`BMI088_Task` 里调 `i2cX_init()` |
 
