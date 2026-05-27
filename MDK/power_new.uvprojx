@@ -434,6 +434,11 @@
               <FileType>1</FileType>
               <FilePath>..\applications\power_manage.c</FilePath>
             </File>
+            <File>
+              <FileName>ct02_port.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\applications\ct02_port.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -483,6 +488,21 @@
               <FileName>adc.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\drivers\adc.c</FilePath>
+            </File>
+            <File>
+              <FileName>din.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\din.c</FilePath>
+            </File>
+            <File>
+              <FileName>dout.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\dout.c</FilePath>
+            </File>
+            <File>
+              <FileName>hw_ver.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\hw_ver.c</FilePath>
             </File>
           </Files>
         </Group>
