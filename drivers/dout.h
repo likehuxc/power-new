@@ -4,9 +4,10 @@
 #include "hc32_ll.h"
 
 typedef struct {
-    uint16_t port;
-    uint16_t pin;
-    uint8_t active_level;
+    const char* name;       /* 输出脚名称 */
+    uint8_t  port;          /* 输出脚端口 */
+    uint16_t pin;           /* 输出脚引脚 */
+    uint8_t  active_level;  /* 输出脚有效电平 */
 } dout_obj_t;
 
 /* 定义输出脚 */

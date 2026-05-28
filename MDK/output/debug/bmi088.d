@@ -33,4 +33,5 @@
   ..\components\freertos\portable\GCC\ARM_CM4F\portmacro.h \
   ..\components\freertos\include\mpu_wrappers.h \
   ..\components\freertos\include\task.h \
-  ..\components\freertos\include\list.h ..\common\log\log.h
+  ..\components\freertos\include\list.h ..\common\log\log.h \
+  ..\applications\can_port.h

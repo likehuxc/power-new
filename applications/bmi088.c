@@ -17,6 +17,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "log.h"
+#include "can_port.h"
 
 /*******************************************************************************
  * I2C 地址定义（7 位地址，SDO1/SDO2 接 GND）
@@ -74,8 +75,8 @@
 /*******************************************************************************
  * 量程配置（当前使用的配置）
  ******************************************************************************/
-/* 加速度计: ±6g, ODR=100Hz, Normal BW */
-#define ACC_RANGE_CFG           (0x01U)     /* ±6g */
+/* 加速度计: ±3g, ODR=100Hz, Normal BW */
+#define ACC_RANGE_CFG           (0x00U)     /* ±3g (BMI088最小量程，10920 LSB/g) */
 #define ACC_CONF_CFG            (0xA8U)     /* Normal BW, ODR=100Hz 不滤波 100个数据/S */
 
 /* 陀螺仪: ±2000°/s, ODR=1000Hz, BW=116Hz */
@@ -85,9 +86,12 @@
 /*******************************************************************************
  * 灵敏度常量
  ******************************************************************************/
-/* 加速度计: ±6g → 5460 LSB/g → 1 LSB = 9.80665/5460 m/s² */
-#define ACC_SENSITIVITY_6G      (5460.0f)
+/* 加速度计: ±3g → 10920 LSB/g → 1 LSB = 9.80665/10920 m/s²
+ * 协议 CMD 0x11 要求 16384 LSB/g (±2g)，上传时需换算: send = raw * 16384 / 10920 = raw * 1.5 */
+#define ACC_SENSITIVITY_3G      (10920.0f)
 #define GRAVITY                 (9.80665f)
+/* 协议要求的加速度灵敏度（用于 CAN 上传换算） */
+#define ACC_PROTO_SENSITIVITY   (16384)
 
 /* 陀螺仪: ±2000°/s → 16.384 LSB/(°/s) → 1 LSB = 1/16.384 °/s */
 #define GYRO_SENSITIVITY_2000   (16.384f)
@@ -166,7 +170,7 @@ static int32_t bmi088_acc_init(void)
     if (ret != LL_OK) return BMI088_ERR_COMM;
     vTaskDelay(pdMS_TO_TICKS(1U));
 
-    /* 4. 配置量程: ±6g */
+    /* 4. 配置量程: ±3g */
     ret = acc_write_reg(ACC_RANGE, ACC_RANGE_CFG);
     if (ret != LL_OK) return BMI088_ERR_COMM;
     DDL_DelayUS(10U);
@@ -343,9 +347,9 @@ int32_t BMI088_ReadAll(bmi088_data_t *data)
     if (ret != BMI088_OK) return ret;
 
     /* 转换加速度为 m/s²: raw / sensitivity * g */
-    data->accel.x = (float)data->accel_raw.x / ACC_SENSITIVITY_6G * GRAVITY;
-    data->accel.y = (float)data->accel_raw.y / ACC_SENSITIVITY_6G * GRAVITY;
-    data->accel.z = (float)data->accel_raw.z / ACC_SENSITIVITY_6G * GRAVITY;
+    data->accel.x = (float)data->accel_raw.x / ACC_SENSITIVITY_3G * GRAVITY;
+    data->accel.y = (float)data->accel_raw.y / ACC_SENSITIVITY_3G * GRAVITY;
+    data->accel.z = (float)data->accel_raw.z / ACC_SENSITIVITY_3G * GRAVITY;
 
     /* 转换角速度为 °/s: raw / sensitivity */
     data->gyro.x = (float)data->gyro_raw.x / GYRO_SENSITIVITY_2000;
@@ -378,10 +382,52 @@ void BMI088_Task(void *pvParameters)
                      imu.accel.x, imu.accel.y, imu.accel.z,
                      imu.gyro.x, imu.gyro.y, imu.gyro.z,
                      imu.temperature);
+
+            /* CMD 0x10: 陀螺仪原始值上传（16.4 LSB/°/s，与协议匹配，直接发送） */
+            {
+                uint8_t buf[8];
+                int16_t gx = imu.gyro_raw.x;
+                int16_t gy = imu.gyro_raw.y;
+                int16_t gz = imu.gyro_raw.z;
+                buf[0] = 0x10U;
+                buf[1] = (uint8_t)((uint16_t)gx >> 8);          // Gyro X High Byte
+                buf[2] = (uint8_t)((uint16_t)gx & 0xFFU);       // Gyro X Low Byte
+                buf[3] = (uint8_t)((uint16_t)gy >> 8);          // Gyro Y High Byte
+                buf[4] = (uint8_t)((uint16_t)gy & 0xFFU);       // Gyro Y Low Byte
+                buf[5] = (uint8_t)((uint16_t)gz >> 8);          // Gyro Z High Byte
+                buf[6] = (uint8_t)((uint16_t)gz & 0xFFU);       // Gyro Z Low Byte
+                buf[7] = buf[0]^buf[1]^buf[2]^buf[3]^buf[4]^buf[5]^buf[6];  // XOR Checksum
+                (void)CanPort_Send(0x10U, buf, 8U);
+            }
+
+            /* CMD 0x11: 加速度计原始值上传 bmi088 最小量程 ±3g
+             * BMI088 ±3g = 10920 LSB/g，协议期望 16384 LSB/g
+             * 换算: send = raw * 16384 / 10920 = raw * 3 / 2，超出±32767时截断 */
+            {
+                uint8_t buf[8];
+                int32_t sx = ((int32_t)imu.accel_raw.x * ACC_PROTO_SENSITIVITY) / (int32_t)ACC_SENSITIVITY_3G;
+                int32_t sy = ((int32_t)imu.accel_raw.y * ACC_PROTO_SENSITIVITY) / (int32_t)ACC_SENSITIVITY_3G;
+                int32_t sz = ((int32_t)imu.accel_raw.z * ACC_PROTO_SENSITIVITY) / (int32_t)ACC_SENSITIVITY_3G;
+                if (sx >  32767) sx =  32767;
+                if (sx < -32767) sx = -32767;
+                if (sy >  32767) sy =  32767;
+                if (sy < -32767) sy = -32767;
+                if (sz >  32767) sz =  32767;
+                if (sz < -32767) sz = -32767;
+                buf[0] = 0x11U;
+                buf[1] = (uint8_t)(((uint32_t)sx >> 8) & 0xFFU);        // Accel X High Byte
+                buf[2] = (uint8_t)((uint32_t)sx & 0xFFU);               // Accel X Low Byte
+                buf[3] = (uint8_t)(((uint32_t)sy >> 8) & 0xFFU);        // Accel Y High Byte
+                buf[4] = (uint8_t)((uint32_t)sy & 0xFFU);               // Accel Y Low Byte
+                buf[5] = (uint8_t)(((uint32_t)sz >> 8) & 0xFFU);        // Accel Z High Byte
+                buf[6] = (uint8_t)((uint32_t)sz & 0xFFU);               // Accel Z Low Byte
+                buf[7] = buf[0]^buf[1]^buf[2]^buf[3]^buf[4]^buf[5]^buf[6];  // XOR Checksum
+                (void)CanPort_Send(0x11U, buf, 8U);
+            }
         } else {
             LOG_ERROR("BMI088 read FAILED");
         }
 
-        vTaskDelay(pdMS_TO_TICKS(500U));
+        vTaskDelay(pdMS_TO_TICKS(100U));
     }
 }

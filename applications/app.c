@@ -15,7 +15,7 @@
 #include "hc32_ll.h"
 #include "led.h"
 #include "log.h"
-#include "uart.h"
+#include "uart_port.h"
 #include "eeprom.h"
 #include "bmi088.h"
 #include "power_manage.h"

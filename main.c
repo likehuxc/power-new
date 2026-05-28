@@ -19,7 +19,7 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)
     (void)xTask;
     taskDISABLE_INTERRUPTS();
 
-    /* 直接用底层发送，不走 Log_Printf（此时栈已不可信） */
+    /* 直接用底层发送，不走日志模块（此时栈已不可信） */
     {
         static const char prefix[] = "\r\n[FATAL] Stack overflow: ";
         static const char suffix[] = "\r\n";

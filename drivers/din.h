@@ -8,15 +8,15 @@ typedef void(*din_callback_t)(uint8_t event);
 
 /* 数字输入 IO 类型 */
 typedef struct {
-    const char* name;
-    uint8_t  port;
-    uint16_t pin;
-    uint8_t  jitter;
-    uint8_t  active_level;
-    din_callback_t cb;
-    uint8_t  state;
-    uint8_t  ticks;
-    uint8_t  active;
+    const char* name;       /* 输入脚名称 */
+    uint8_t  port;          /* 输入脚端口 */
+    uint16_t pin;           /* 输入脚引脚 */
+    uint8_t  jitter;        /* 输入脚抖动阈值 */
+    uint8_t  active_level;  /* 输入脚有效电平 */
+    din_callback_t cb;      /* 输入脚回调函数 */
+    uint8_t  state;         /* 输入脚状态 */
+    uint8_t  ticks;         /* 输入脚抖动计数 */
+    uint8_t  active;        /* 输入脚是否激活 */
 } din_obj_t;
 
 /* 定义输入脚 */

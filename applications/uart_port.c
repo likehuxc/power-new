@@ -1,11 +1,11 @@
 /**
  *******************************************************************************
- * @file  uart.c
+ * @file  uart_port.c
  * @brief USART1/USART4 应用层：DMA 回调入队，任务出队处理（与 CAN 相同模式）
  *******************************************************************************
  */
 
-#include "uart.h"
+#include "uart_port.h"
 
 #include "FreeRTOS.h"
 #include "stream_buffer.h"
