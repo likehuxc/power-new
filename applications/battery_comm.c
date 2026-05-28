@@ -154,10 +154,10 @@ static int Battery_SendFrame(uint8_t bat_idx, const uint8_t payload[BAT_PAYLOAD_
         tx_buf[i] = payload[i];
     }
     tx_buf[7] = Battery_CalcXorChecksum(tx_buf, BAT_PAYLOAD_LEN);
-    LOG_DEBUG("[BAT%u] tran ID:0x%02lX DATA: %02X %02X %02X %02X %02X %02X %02X %02X",
-              (unsigned)(bat_idx + 1U), (unsigned long)can_id,
-              tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3],
-              tx_buf[4], tx_buf[5], tx_buf[6], tx_buf[7]);
+    // LOG_DEBUG("[BAT%u] tran ID:0x%02lX DATA: %02X %02X %02X %02X %02X %02X %02X %02X",
+    //           (unsigned)(bat_idx + 1U), (unsigned long)can_id,
+    //           tx_buf[0], tx_buf[1], tx_buf[2], tx_buf[3],
+    //           tx_buf[4], tx_buf[5], tx_buf[6], tx_buf[7]);
     return CanPort_Send(can_id, tx_buf, BAT_FRAME_LEN);
 }
 

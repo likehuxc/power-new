@@ -14,6 +14,9 @@
     (LL_PERIPH_GPIO | LL_PERIPH_FCG | LL_PERIPH_PWC_CLK_RMU | \
      LL_PERIPH_EFM | LL_PERIPH_SRAM)
 
+#define RK3588_CAN_ID   (0x04U)
+#define ORIN_CAN_ID     (0x05U)
+
 void Board_PeriphUnlock(void);
 void Board_PeriphLock(void);
 void Board_Init(void);

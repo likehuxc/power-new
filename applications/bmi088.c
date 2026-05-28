@@ -18,6 +18,7 @@
 #include "task.h"
 #include "log.h"
 #include "can_port.h"
+#include "board.h"
 
 /*******************************************************************************
  * I2C 地址定义（7 位地址，SDO1/SDO2 接 GND）
@@ -397,7 +398,7 @@ void BMI088_Task(void *pvParameters)
                 buf[5] = (uint8_t)((uint16_t)gz >> 8);          // Gyro Z High Byte
                 buf[6] = (uint8_t)((uint16_t)gz & 0xFFU);       // Gyro Z Low Byte
                 buf[7] = buf[0]^buf[1]^buf[2]^buf[3]^buf[4]^buf[5]^buf[6];  // XOR Checksum
-                (void)CanPort_Send(0x10U, buf, 8U);
+                (void)CanPort_Send(RK3588_CAN_ID, buf, 8U);
             }
 
             /* CMD 0x11: 加速度计原始值上传 bmi088 最小量程 ±3g
@@ -422,7 +423,7 @@ void BMI088_Task(void *pvParameters)
                 buf[5] = (uint8_t)(((uint32_t)sz >> 8) & 0xFFU);        // Accel Z High Byte
                 buf[6] = (uint8_t)((uint32_t)sz & 0xFFU);               // Accel Z Low Byte
                 buf[7] = buf[0]^buf[1]^buf[2]^buf[3]^buf[4]^buf[5]^buf[6];  // XOR Checksum
-                (void)CanPort_Send(0x11U, buf, 8U);
+                (void)CanPort_Send(RK3588_CAN_ID, buf, 8U);
             }
         } else {
             LOG_ERROR("BMI088 read FAILED");

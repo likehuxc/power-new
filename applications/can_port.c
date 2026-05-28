@@ -8,7 +8,6 @@
 #include "can_port.h"
 
 #include <stdint.h>
-#include <stdio.h>
 
 #include "FreeRTOS.h"
 #include "queue.h"
@@ -33,7 +32,6 @@ typedef struct {
     uint8_t  buf[8];
 } can_port_tx_msg_t;
 
-#define CAN_PORT_LINE_LEN               96U
 #define CAN_TX_QUEUE_DEPTH              16U
 
 static QueueHandle_t s_can_rx_queue;
@@ -94,47 +92,6 @@ static void CanPort_Dispatch(const can_port_msg_t *msg)
     }
 }
 
-/* 格式化 CAN 接收帧：整行一次 LOG_DEBUG，避免 DMA 串口输出交错 */
-static int CanPort_FormatRxLine(const can_port_msg_t *msg, char *line, size_t line_size)
-{
-    static const char hex[] = "0123456789abcdef";
-    int     pos;
-    uint8_t i;
-
-    if ((NULL == msg) || (NULL == line) || (0U == line_size)) {
-        return -1;
-    }
-
-    pos = snprintf(line, line_size, "CAN_RX ID:0x%08lx LEN:%d DATA:",
-                   (unsigned long)msg->id, (int)msg->len);
-    if ((pos < 0) || ((size_t)pos >= line_size)) {
-        line[line_size - 1U] = '\0';
-        return -1;
-    }
-
-    for (i = 0U; i < msg->len; i++) {
-        /* 每个字节追加 " xx"，并预留 "\r\n\0" */
-        if (((size_t)pos + 6U) > line_size) {
-            break;
-        }
-
-        line[pos++] = ' ';
-        line[pos++] = hex[(msg->buf[i] >> 4U) & 0x0FU];
-        line[pos++] = hex[msg->buf[i] & 0x0FU];
-    }
-
-    if (((size_t)pos + 3U) > line_size) {
-        line[line_size - 1U] = '\0';
-        return -1;
-    }
-
-    line[pos++] = '\r';
-    line[pos++] = '\n';
-    line[pos] = '\0';
-
-    return pos;
-}
-
 /* CAN 应用初始化：队列 + 1M 波特率 + 回调注册 */
 void CanPort_Init(void)
 {
@@ -175,7 +132,6 @@ void CanPort_Task(void *param)
 {
     can_port_msg_t    rx_msg;
     can_port_tx_msg_t tx_msg;
-    char              line[CAN_PORT_LINE_LEN];
 
     (void)param;
 
@@ -185,9 +141,10 @@ void CanPort_Task(void *param)
         /* 等待接收帧，最多阻塞 1ms，保证 TX 队列能被及时处理 */
         if (pdTRUE == xQueueReceive(s_can_rx_queue, &rx_msg, pdMS_TO_TICKS(1U))) {
             /* 先打印原始帧数据（调试用） */
-            // if (CanPort_FormatRxLine(&rx_msg, line, sizeof(line)) > 0) {
-            //     LOG_DEBUG("%s", line);
-            // }
+            // LOG_DEBUG("CAN_RX ID:0x%08lx LEN:%d DATA: %02X %02X %02X %02X %02X %02X %02X %02X",
+            //           (unsigned long)rx_msg.id, (int)rx_msg.len,
+            //           rx_msg.buf[0], rx_msg.buf[1], rx_msg.buf[2], rx_msg.buf[3],
+            //           rx_msg.buf[4], rx_msg.buf[5], rx_msg.buf[6], rx_msg.buf[7]);
 
             /* 按 CAN ID 路由到对应协议模块 */
             CanPort_Dispatch(&rx_msg);
@@ -196,6 +153,10 @@ void CanPort_Task(void *param)
         /* 排干发送队列 */
         while (pdTRUE == xQueueReceive(s_can_tx_queue, &tx_msg, 0U)) {
             (void)can_send_std_frame(tx_msg.id, tx_msg.buf, tx_msg.len);
+            LOG_DEBUG("CAN_TX ID:0x%08lx LEN:%d DATA: %02X %02X %02X %02X %02X %02X %02X %02X",
+                      (unsigned long)tx_msg.id, (int)tx_msg.len,
+                      tx_msg.buf[0], tx_msg.buf[1], tx_msg.buf[2], tx_msg.buf[3],
+                      tx_msg.buf[4], tx_msg.buf[5], tx_msg.buf[6], tx_msg.buf[7]);
         }
     }
 }

@@ -117,3 +117,7 @@ MDK/output/debug/eeprom.d
 MDK/output/debug/eeprom.o
 MDK/output/debug/i2c.d
 MDK/output/debug/log.d
+MDK/output/debug/battery_comm.o
+MDK/output/debug/bmi088.d
+MDK/output/debug/bmi088.o
+MDK/output/debug/can_port.o
