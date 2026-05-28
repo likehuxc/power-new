@@ -420,6 +420,11 @@
               <FilePath>..\applications\led.c</FilePath>
             </File>
             <File>
+              <FileName>light_ctrl.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\applications\light_ctrl.c</FilePath>
+            </File>
+            <File>
               <FileName>uart_port.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\applications\uart_port.c</FilePath>
@@ -513,6 +518,11 @@
               <FileName>hw_ver.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\drivers\hw_ver.c</FilePath>
+            </File>
+            <File>
+              <FileName>rgb_led.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\drivers\rgb_led.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -678,6 +688,11 @@
               <FileName>hc32_ll_tmr0.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_tmr0.c</FilePath>
+            </File>
+            <File>
+              <FileName>hc32_ll_tmra.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\libraries\hc32_ll_driver\src\hc32_ll_tmra.c</FilePath>
             </File>
             <File>
               <FileName>hc32_ll_spi.c</FileName>

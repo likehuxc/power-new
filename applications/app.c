@@ -14,6 +14,7 @@
 #include "can_port.h"
 #include "hc32_ll.h"
 #include "led.h"
+#include "light_ctrl.h"
 #include "log.h"
 #include "uart_port.h"
 #include "eeprom.h"
@@ -36,6 +37,7 @@ void App_Init(void)
 void App_StartTasks(void)
 {
     (void)xTaskCreate(Led_Task, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
+    light_ctrl_init();
     (void)xTaskCreate(Uart1_Task, "u1", 512, NULL, configMAX_PRIORITIES - 9, NULL);
 //    (void)xTaskCreate(Uart4_Task, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
     (void)xTaskCreate(UartLog_Task, "uart_log", 512, NULL, tskIDLE_PRIORITY + 2, NULL);
