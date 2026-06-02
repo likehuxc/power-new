@@ -4,6 +4,15 @@
 // ADC 总共 17 通道, 为了简化 DMA 地址不连续传输配置, 改为直接传输 17 通道结果
 #define ADC_CH_COUNT            (17)
 
+/* ADC DMA uses DMA1_CH2. DMA1_CH0/CH1 are reserved for USART1 RX/TX. */
+#define ADC_DMA_UNIT            (CM_DMA1)
+#define ADC_DMA_CH              (DMA_CH2)
+#define ADC_DMA_FCG_ENABLE()    (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE))
+#define ADC_DMA_TRIG_SEL        (AOS_DMA1_2)
+#define ADC_DMA_BTC_INT         (DMA_INT_BTC_CH2)
+#define ADC_DMA_BTC_FLAG        (DMA_FLAG_BTC_CH2)
+#define ADC_DMA_BTC_INT_SRC     (INT_SRC_DMA1_BTC2)
+
 static __ALIGNED(4) uint16_t ADC_BUFF[ADC_CH_COUNT];
 
 static adc_obj_t* adc_obj = 0;
@@ -14,7 +23,7 @@ static void DMA_IrqCallback(void)
     float val;
     uint8_t i;
 
-    DMA_ClearTransCompleteStatus(CM_DMA1, DMA_FLAG_BTC_CH1);
+    DMA_ClearTransCompleteStatus(ADC_DMA_UNIT, ADC_DMA_BTC_FLAG);
     ADC_Start(CM_ADC1);
 
     for(i = 0; i < adc_obj_cnt; i ++) {
@@ -57,7 +66,7 @@ void adc_init(adc_obj_t* obj, uint8_t count)
     }
 
     // 使能 DMA 时钟
-    FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE);
+    ADC_DMA_FCG_ENABLE();
     // DMA 初始化
     DMA_StructInit(&dma);
     dma.u32IntEn       = DMA_INT_ENABLE;
@@ -68,21 +77,21 @@ void adc_init(adc_obj_t* obj, uint8_t count)
     dma.u32TransCount  = 0; /* 0 表示无限次传输 */
     dma.u32SrcAddrInc  = DMA_SRC_ADDR_INC;
     dma.u32DestAddrInc = DMA_DEST_ADDR_INC;
-    DMA_Init(CM_DMA1, DMA_CH1, &dma);
+    DMA_Init(ADC_DMA_UNIT, ADC_DMA_CH, &dma);
     // DMA 重复搬运配置
     dma_rpt.u32Mode      = DMA_RPT_BOTH;
     dma_rpt.u32SrcCount  = ADC_CH_COUNT;
     dma_rpt.u32DestCount = ADC_CH_COUNT;
-    DMA_RepeatInit(CM_DMA1, DMA_CH1, &dma_rpt);
+    DMA_RepeatInit(ADC_DMA_UNIT, ADC_DMA_CH, &dma_rpt);
 
     // 使能 AOS 时钟
     FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_AOS, ENABLE);
     // 设置 DMA 触发源
-    AOS_SetTriggerEventSrc(AOS_DMA1_1, EVT_SRC_ADC1_EOCA);
+    AOS_SetTriggerEventSrc(ADC_DMA_TRIG_SEL, EVT_SRC_ADC1_EOCA);
 
     // DMA 中断配置
-#define DMA_INT_TYPE    (DMA_INT_BTC_CH1)
-#define DMA_INT_SRC     (INT_SRC_DMA1_BTC1)
+#define DMA_INT_TYPE    (ADC_DMA_BTC_INT)
+#define DMA_INT_SRC     (ADC_DMA_BTC_INT_SRC)
 #define DMA_INT_IRQn    (INT038_IRQn)
 #define DMA_INT_PRIO    (DDL_IRQ_PRIO_03)
 
@@ -90,7 +99,7 @@ void adc_init(adc_obj_t* obj, uint8_t count)
     irq.enIRQn      = DMA_INT_IRQn;
     irq.pfnCallback = &DMA_IrqCallback;
     INTC_IrqSignIn(&irq);
-    DMA_ClearTransCompleteStatus(CM_DMA1, DMA_FLAG_BTC_CH1);
+    DMA_ClearTransCompleteStatus(ADC_DMA_UNIT, ADC_DMA_BTC_FLAG);
 
     // NVIC 配置
     NVIC_ClearPendingIRQ(DMA_INT_IRQn);
@@ -98,8 +107,8 @@ void adc_init(adc_obj_t* obj, uint8_t count)
     NVIC_EnableIRQ(DMA_INT_IRQn);
 
     // 使能 DMA
-    DMA_Cmd(CM_DMA1, ENABLE);
-    DMA_ChCmd(CM_DMA1, DMA_CH1, ENABLE);
+    DMA_Cmd(ADC_DMA_UNIT, ENABLE);
+    DMA_ChCmd(ADC_DMA_UNIT, ADC_DMA_CH, ENABLE);
     // 硬件平均值设置
     ADC_ConvDataAverageConfig(CM_ADC1, ADC_AVG_CNT256);
     for(i = 0; i < count; i ++) {

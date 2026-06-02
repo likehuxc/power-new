@@ -24,16 +24,16 @@
 #define UART1_RX_DMA_TC_IRQn            (INT000_IRQn)
 #define UART1_RX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC0)
 
-/* 发送DMA：DMA2 通道0，触发源�?USART1_TI */
-#define UART1_TX_DMA_UNIT               (CM_DMA2)
-#define UART1_TX_DMA_CH                 (DMA_CH0)
-#define UART1_TX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA2, ENABLE))
-#define UART1_TX_DMA_TRIG_SEL           (AOS_DMA2_0)
+/* TX DMA: DMA1 CH1, trigger source USART1_TI */
+#define UART1_TX_DMA_UNIT               (CM_DMA1)
+#define UART1_TX_DMA_CH                 (DMA_CH1)
+#define UART1_TX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE))
+#define UART1_TX_DMA_TRIG_SEL           (AOS_DMA1_1)
 #define UART1_TX_DMA_TRIG_EVT_SRC       (EVT_SRC_USART1_TI)
-#define UART1_TX_DMA_TC_INT             (DMA_INT_TC_CH0)
-#define UART1_TX_DMA_TC_FLAG            (DMA_FLAG_TC_CH0)
+#define UART1_TX_DMA_TC_INT             (DMA_INT_TC_CH1)
+#define UART1_TX_DMA_TC_FLAG            (DMA_FLAG_TC_CH1)
 #define UART1_TX_DMA_TC_IRQn            (INT001_IRQn)
-#define UART1_TX_DMA_TC_INT_SRC         (INT_SRC_DMA2_TC0)
+#define UART1_TX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC1)
 
 /* TMR0：用于USART1接收超时检�?*/
 #define UART1_TMR0_UNIT                 (CM_TMR0_1)
@@ -177,6 +177,9 @@ static int32_t UART1_DMA_Config(void)
     UART1_TX_DMA_FCG_ENABLE();
     FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_AOS, ENABLE);
 
+    /* 先使能 DMA1 控制器，再配置各通道中断，避免使能时重置 INTMASK */
+    DMA_Cmd(UART1_RX_DMA_UNIT, ENABLE);
+
     /* ---- 接收DMA：DMA1 CH0，搬�?USART1_RDR �?s_uart1_rx_buf ---- */
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;                  /* 传输完成中断使能 */
@@ -201,13 +204,12 @@ static int32_t UART1_DMA_Config(void)
         /* 设置DMA触发事件源（每收到一字节触发一次DMA搬运�?*/
         AOS_SetTriggerEventSrc(UART1_RX_DMA_TRIG_SEL, UART1_RX_DMA_TRIG_EVT_SRC);
 
-        /* 使能DMA控制器、传输完成中断及通道 */
-        DMA_Cmd(UART1_RX_DMA_UNIT, ENABLE);
+        /* 使能传输完成中断及通道 */
         DMA_TransCompleteIntCmd(UART1_RX_DMA_UNIT, UART1_RX_DMA_TC_INT, ENABLE);
         (void)DMA_ChCmd(UART1_RX_DMA_UNIT, UART1_RX_DMA_CH, ENABLE);
     }
 
-    /* ---- 发送DMA：DMA2 CH0，内存缓冲区 �?USART1_TDR（通道按需启动�?---- */
+    /* ---- TX DMA: DMA1 CH1, memory buffer -> USART1_TDR, enabled on demand ---- */
     (void)DMA_StructInit(&stcDmaInit);
     stcDmaInit.u32IntEn      = DMA_INT_ENABLE;
     stcDmaInit.u32BlockSize  = 1UL;
@@ -230,7 +232,6 @@ static int32_t UART1_DMA_Config(void)
 
         AOS_SetTriggerEventSrc(UART1_TX_DMA_TRIG_SEL, UART1_TX_DMA_TRIG_EVT_SRC);
 
-        DMA_Cmd(UART1_TX_DMA_UNIT, ENABLE);
         DMA_TransCompleteIntCmd(UART1_TX_DMA_UNIT, UART1_TX_DMA_TC_INT, ENABLE);
         /* 发送DMA通道按需使能 */
     }

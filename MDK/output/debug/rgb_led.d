@@ -1,4 +1,4 @@
-./output/debug/hw_ver.o: ..\drivers\hw_ver.c ..\drivers\hw_ver.h \
+./output/debug/rgb_led.o: ..\drivers\rgb_led.c ..\drivers\rgb_led.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_def.h \
   ..\libraries\cmsis\Device\HDSC\hc32f4xx\Include\hc32f4xx.h \

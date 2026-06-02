@@ -12,27 +12,27 @@
 
 #include "hc32_ll.h"
 
-/* 接收DMA：DMA2 通道1，触发源�?USART4_RI */
-#define UART4_RX_DMA_UNIT               (CM_DMA2)
-#define UART4_RX_DMA_CH                 (DMA_CH1)
-#define UART4_RX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA2, ENABLE))
-#define UART4_RX_DMA_TRIG_SEL           (AOS_DMA2_1)
+/* RX DMA: DMA1 CH2, trigger source USART4_RI */
+#define UART4_RX_DMA_UNIT               (CM_DMA1)
+#define UART4_RX_DMA_CH                 (DMA_CH2)
+#define UART4_RX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE))
+#define UART4_RX_DMA_TRIG_SEL           (AOS_DMA1_2)
 #define UART4_RX_DMA_TRIG_EVT_SRC       (EVT_SRC_USART4_RI)
-#define UART4_RX_DMA_TC_INT             (DMA_INT_TC_CH1)
-#define UART4_RX_DMA_TC_FLAG            (DMA_FLAG_TC_CH1)
+#define UART4_RX_DMA_TC_INT             (DMA_INT_TC_CH2)
+#define UART4_RX_DMA_TC_FLAG            (DMA_FLAG_TC_CH2)
 #define UART4_RX_DMA_TC_IRQn            (INT005_IRQn)
-#define UART4_RX_DMA_TC_INT_SRC         (INT_SRC_DMA2_TC1)
+#define UART4_RX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC2)
 
-/* 发送DMA：DMA1 通道1，触发源�?USART4_TI */
+/* TX DMA: DMA1 CH3, trigger source USART4_TI */
 #define UART4_TX_DMA_UNIT               (CM_DMA1)
-#define UART4_TX_DMA_CH                 (DMA_CH1)
+#define UART4_TX_DMA_CH                 (DMA_CH3)
 #define UART4_TX_DMA_FCG_ENABLE()       (FCG_Fcg0PeriphClockCmd(FCG0_PERIPH_DMA1, ENABLE))
-#define UART4_TX_DMA_TRIG_SEL           (AOS_DMA1_1)
+#define UART4_TX_DMA_TRIG_SEL           (AOS_DMA1_3)
 #define UART4_TX_DMA_TRIG_EVT_SRC       (EVT_SRC_USART4_TI)
-#define UART4_TX_DMA_TC_INT             (DMA_INT_TC_CH1)
-#define UART4_TX_DMA_TC_FLAG            (DMA_FLAG_TC_CH1)
+#define UART4_TX_DMA_TC_INT             (DMA_INT_TC_CH3)
+#define UART4_TX_DMA_TC_FLAG            (DMA_FLAG_TC_CH3)
 #define UART4_TX_DMA_TC_IRQn            (INT006_IRQn)
-#define UART4_TX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC1)
+#define UART4_TX_DMA_TC_INT_SRC         (INT_SRC_DMA1_TC3)
 
 /* TMR0：用于USART4接收超时检�?*/
 #define UART4_TMR0_UNIT                 (CM_TMR0_2)

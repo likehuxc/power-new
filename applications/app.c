@@ -31,13 +31,13 @@ void App_Init(void)
     Uart_Init();
     Log_Init();
     PowerManage_Init();
+    light_ctrl_init();
 }
 
 /* 创建 LED / USART1 / USART4 / CAN / 电池测试 / 日志 任务 */
 void App_StartTasks(void)
 {
     (void)xTaskCreate(Led_Task, "led", 128, NULL, configMAX_PRIORITIES - 10, NULL);
-    light_ctrl_init();
     (void)xTaskCreate(Uart1_Task, "u1", 512, NULL, configMAX_PRIORITIES - 9, NULL);
 //    (void)xTaskCreate(Uart4_Task, "u4", 256, NULL, configMAX_PRIORITIES - 8, NULL);
     (void)xTaskCreate(UartLog_Task, "uart_log", 512, NULL, tskIDLE_PRIORITY + 2, NULL);
@@ -45,5 +45,5 @@ void App_StartTasks(void)
     (void)xTaskCreate(Battery_Task, "bat", 512, NULL, configMAX_PRIORITIES - 6, NULL);
     (void)xTaskCreate(Eeprom_Task, "eeprom", 512, NULL, configMAX_PRIORITIES - 5, NULL);
     (void)xTaskCreate(BMI088_Task, "bmi088", 512, NULL, configMAX_PRIORITIES - 4, NULL);
-    (void)xTaskCreate(PowerManage_Task, "power_manage", 512, NULL, configMAX_PRIORITIES - 3, NULL);
+//    (void)xTaskCreate(PowerManage_Task, "power_manage", 512, NULL, configMAX_PRIORITIES - 3, NULL);
 }

@@ -33,5 +33,6 @@
   ..\libraries\hc32_ll_driver\inc\hc32_ll_spi.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_sram.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_tmr0.h \
+  ..\libraries\hc32_ll_driver\inc\hc32_ll_tmra.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_usart.h \
   ..\libraries\hc32_ll_driver\inc\hc32_ll_utility.h ..\common\log\log.h
